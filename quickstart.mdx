@@ -32,6 +32,7 @@ curl -X POST https://esa.acreblitz.com/api/v1/esa-check \
     "provider_id": "your_provider_id",
     "field_name": "South Field 25",
     "application_id": "job-2024-06-15-002",
+    "provider_field_id": "field-south-25",
     "application_method": "ground",
     "application_date": "2024-06-15",
     "field_boundary": {
@@ -75,6 +76,7 @@ const response = await fetch(
       provider_id: 'your_provider_id',
       field_name: 'South Field 25',
       application_id: 'job-2024-06-15-002',
+      provider_field_id: 'field-south-25',
       application_method: 'ground',
       application_date: '2024-06-15',
       field_boundary: {
@@ -122,6 +124,7 @@ response = requests.post(
         "provider_id": "your_provider_id",
         "field_name": "South Field 25",
         "application_id": "job-2024-06-15-002",
+        "provider_field_id": "field-south-25",
         "application_method": "ground",
         "application_date": "2024-06-15",
         "field_boundary": {
@@ -225,13 +228,13 @@ The portal URL is valid for 1 year and provides a fully branded experience where
 After an ESA check, you can programmatically download compliance reports:
 
 ```bash Download Enlist Report
-curl -X GET "https://esa.acreblitz.com/api/v1/fields/job-2024-06-15-002/reports/enlist" \
+curl -X GET "https://esa.acreblitz.com/api/v1/fields/field-south-25/reports/enlist" \
   -H "X-API-Key: your_api_key_here" \
   -o enlist-report.pdf
 ```
 
 ```bash Download Runoff Report
-curl -X GET "https://esa.acreblitz.com/api/v1/fields/job-2024-06-15-002/reports/runoff" \
+curl -X GET "https://esa.acreblitz.com/api/v1/fields/field-south-25/reports/runoff" \
   -H "X-API-Key: your_api_key_here" \
   -o runoff-report.pdf
 ```
