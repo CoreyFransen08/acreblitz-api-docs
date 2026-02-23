@@ -1,0 +1,50 @@
+---
+title: Authentication
+description: How to authenticate your AcreBlitz API requests
+---
+
+All API requests require a valid API key passed in the `X-API-Key` header.
+
+## API Key Header
+
+Include your API key in every request:
+
+```
+X-API-Key: your_api_key_here
+```
+
+<Snippet file="auth-header.mdx" />
+
+## Example Request
+
+```bash cURL
+curl -X POST https://esa.acreblitz.com/api/v1/esa-check \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key_here" \
+  -d '{ ... }'
+```
+
+## Error Responses
+
+If the API key is missing or invalid, you will receive a `401 Unauthorized` response:
+
+```json
+{
+  "detail": "Invalid or missing API key"
+}
+```
+
+## Security Best Practices
+
+<Warning>
+  Never expose your API key in client-side code (browser JavaScript, mobile app bundles). Always make API calls from your backend server.
+</Warning>
+
+- **Store securely**: Use environment variables or a secrets manager. Never hardcode keys in source code.
+- **Server-side only**: Make all AcreBlitz API calls from your backend. Never include the key in frontend code shipped to browsers or mobile devices.
+- **Rotate if compromised**: If you suspect your key has been exposed, contact [support@acreblitz.com](mailto:support@acreblitz.com) to rotate it immediately.
+- **Limit access**: Only share API keys with team members who need them. Use separate keys for development and production if available.
+
+## Getting an API Key
+
+To request an API key, contact us at [support@acreblitz.com](mailto:support@acreblitz.com) or visit [acreblitz.com/contact](https://www.acreblitz.com/contact).

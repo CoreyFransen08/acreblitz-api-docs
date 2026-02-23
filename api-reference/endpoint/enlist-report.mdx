@@ -1,0 +1,51 @@
+---
+title: Enlist Report
+api: "GET /api/v1/fields/{provider_field_id}/reports/enlist"
+description: Download Enlist Mitigation PDF report for a field
+---
+
+Download the Enlist Mitigation compliance report as a PDF for a specific field. The report includes limitation details, selected mitigations, and regulatory references.
+
+## Path Parameters
+
+<ParamField path="provider_field_id" type="string" required>
+  The provider's field identifier. This is the `provider_field_id` you submitted to [`/esa-check`](/api-reference/endpoint/esa-check). If you didn't provide a `provider_field_id`, use the `application_id` instead.
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="year" type="integer">
+  Report year. Defaults to the current year if not specified.
+</ParamField>
+
+## Response
+
+On success, returns the PDF file as an `application/pdf` stream with appropriate `Content-Disposition` headers for download.
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| `400` | Invalid report parameters |
+| `401` | Invalid or missing API key |
+| `404` | Field not found or report not available |
+| `502` | Upstream report generation failed |
+| `504` | Report generation timed out |
+
+## Example
+
+```bash cURL
+curl -X GET "https://esa.acreblitz.com/api/v1/fields/job-2024-06-15-002/reports/enlist" \
+  -H "X-API-Key: your_api_key_here" \
+  -o enlist-report.pdf
+```
+
+```bash cURL with year
+curl -X GET "https://esa.acreblitz.com/api/v1/fields/job-2024-06-15-002/reports/enlist?year=2025" \
+  -H "X-API-Key: your_api_key_here" \
+  -o enlist-report-2025.pdf
+```
+
+<Note>
+  The field must belong to your authenticated provider account and have completed an ESA check with a portal link before reports can be downloaded.
+</Note>

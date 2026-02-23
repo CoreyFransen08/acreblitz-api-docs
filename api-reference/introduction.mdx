@@ -1,33 +1,44 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: API Reference
+description: Overview of the AcreBlitz ESA Check API
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Base URL
 
-## Welcome
+```
+https://esa.acreblitz.com
+```
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
-
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+All endpoints are prefixed with `/api/v1`.
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All endpoints require a valid API key in the `X-API-Key` header. See [Authentication](/authentication) for details.
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
-```
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/esa-check` | Check ESA/PULA restrictions for a pesticide application |
+| `GET` | `/api/v1/fields/{provider_field_id}/reports/enlist` | Download Enlist Mitigation PDF report |
+| `GET` | `/api/v1/fields/{provider_field_id}/reports/runoff` | Download EPA Runoff Mitigation PDF report |
+
+## Status Codes
+
+| Code | Meaning | Description |
+|------|---------|-------------|
+| `200` | Success | Request completed successfully |
+| `400` | Bad Request | Invalid parameters or malformed request body |
+| `401` | Unauthorized | Invalid or missing API key |
+| `404` | Not Found | Field or report not found |
+| `500` | Internal Server Error | Server error — contact support if it persists |
+| `502` | Bad Gateway | Upstream report generation failed |
+| `504` | Gateway Timeout | Report generation timed out |
+
+## Idempotency
+
+The ESA Check endpoint is **idempotent** based on the `application_id` field. Submitting the same `application_id` with updated data will refresh the results for that application rather than creating a duplicate. This makes it safe to retry requests or update application details.
+
+## Rate Limiting
+
+API requests are rate limited to ensure fair usage. If you exceed the limit, you will receive a `429 Too Many Requests` response. Contact support if you need a higher rate limit for your integration.

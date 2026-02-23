@@ -1,55 +1,35 @@
-# Mintlify Starter Kit
+# AcreBlitz API Documentation
 
-Use the starter kit to get your docs deployed and ready to customize.
+API documentation for the AcreBlitz ESA Check API, built with [Mintlify](https://mintlify.com).
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+## What's Documented
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
-
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## AI-assisted writing
-
-Set up your AI coding tool to work with Mintlify:
-
-```bash
-npx skills add https://mintlify.com/docs
-```
-
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
-
-See the [AI tools guides](/ai-tools) for tool-specific setup.
+- **ESA Check API** — Check ESA/PULA restrictions for pesticide applications
+- **Report Endpoints** — Download Enlist and Runoff compliance reports programmatically
+- **Authentication** — API key setup and security best practices
+- **White-Labeled Portal** — How the mitigation portal works for end users
 
 ## Development
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
+Install the [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview locally:
 
-```
-npm i -g mint
+```bash
+npm i -g mintlify
 ```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+Run the dev server from the `acreblitz-api-docs/` directory:
 
-```
-mint dev
+```bash
+npx mintlify dev
 ```
 
 View your local preview at `http://localhost:3000`.
 
-## Publishing changes
+## Publishing
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+Changes pushed to the default branch are automatically deployed via the Mintlify GitHub app. Install it from your [Mintlify dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
 
-## Need help?
+## Troubleshooting
 
-### Troubleshooting
-
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
-
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+- Dev server not starting: Run `npx mintlify update` to ensure you have the latest CLI
+- Page loads as 404: Make sure you're running from a folder with a valid `docs.json`

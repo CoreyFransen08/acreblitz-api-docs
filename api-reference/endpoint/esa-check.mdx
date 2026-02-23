@@ -1,0 +1,319 @@
+---
+title: ESA Check
+api: "POST /api/v1/esa-check"
+description: Check ESA/PULA restrictions for a pesticide application
+---
+
+Check if a field has active Pesticide Use Limitation Areas (PULAs) for the products in your tank mix. Returns detailed limitation data and a white-labeled portal URL for mitigation selection.
+
+## Request Body
+
+### Required Fields
+
+<ParamField body="account_id" type="string" required>
+  Your customer account identifier. Controls portal access and is displayed in reports.
+</ParamField>
+
+<ParamField body="provider_id" type="string" required>
+  Your internal provider identifier, assigned by AcreBlitz.
+</ParamField>
+
+<ParamField body="field_name" type="string" required>
+  Name of the field. Displayed in the portal and on compliance reports.
+</ParamField>
+
+<ParamField body="application_id" type="string" required>
+  Unique identifier for the application job in your system. Used for **idempotency** — resubmit with the same `application_id` to update results rather than create duplicates.
+</ParamField>
+
+<ParamField body="application_method" type="string" required>
+  Method of application. Use your own terminology (e.g., `"Drone"`, `"Ground Boom"`, `"Airblast"`, `"Helicopter"`) — we automatically map to the correct regulatory categories (aerial, ground, airblast).
+</ParamField>
+
+<ParamField body="application_date" type="string" required>
+  Application date in ISO 8601 format (`YYYY-MM-DD`). Used for temporal validation of PULA restrictions.
+</ParamField>
+
+<ParamField body="field_boundary" type="object" required>
+  GeoJSON Feature with Polygon or MultiPolygon geometry in EPSG:4326 (WGS84).
+
+  ```json Example
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [-95.284265, 42.263233],
+        [-95.284470, 42.254180],
+        [-95.267536, 42.254063],
+        [-95.267341, 42.263116],
+        [-95.284265, 42.263233]
+      ]]
+    }
+  }
+  ```
+</ParamField>
+
+<ParamField body="products" type="array" required>
+  Products to check. Each product object contains:
+
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | `epa_number` | string | No | EPA registration number (nullable for adjuvants) |
+  | `product_name` | string | Yes | Product name |
+  | `rate` | number | Yes | Application rate |
+  | `rate_unit` | string | Yes | Rate unit (e.g., `"fl oz/acre"`) |
+
+  ```json Example
+  [
+    {
+      "epa_number": "62719-442",
+      "product_name": "INTREPID 2F",
+      "rate": 16.0,
+      "rate_unit": "fl oz/acre"
+    }
+  ]
+  ```
+</ParamField>
+
+<ParamField body="crop" type="array" required>
+  Crop names being treated (e.g., `["corn", "soybeans"]`).
+</ParamField>
+
+<ParamField body="pest" type="array" required>
+  Target pest names (e.g., `["aphids", "corn borer"]`).
+</ParamField>
+
+### Optional Fields
+
+<ParamField body="provider_field_id" type="string">
+  Your internal field identifier. Used as the key for report download endpoints. If omitted, `application_id` is used as fallback.
+</ParamField>
+
+<ParamField body="user_email" type="string">
+  End user email address. Stored for your records.
+</ParamField>
+
+<ParamField body="gpa" type="number">
+  Gallons per acre. Used for mitigation calculations.
+</ParamField>
+
+<ParamField body="include_geometry" type="boolean" default="false">
+  Include buffered PULA geometries in the response. Useful for rendering PULA boundaries on a map.
+</ParamField>
+
+<ParamField body="buffer_distance_miles" type="number" default="1.0">
+  Buffer distance around the field for PULA geometry inclusion (max 10 miles). Only applies when `include_geometry` is `true`.
+</ParamField>
+
+<ParamField body="droplet_size" type="string">
+  Droplet size category (e.g., `"medium"`, `"coarse"`, `"very_coarse"`).
+</ParamField>
+
+<ParamField body="boom_height" type="string">
+  Boom height for ground applications (`"low"` or `"high"`).
+</ParamField>
+
+### Reserved Fields (Coming Soon)
+
+<ParamField body="include_soil_analysis" type="boolean" default="false">
+  Include soil analysis data in the response. **Not yet implemented** — currently ignored.
+</ParamField>
+
+<ParamField body="include_mitigations" type="boolean" default="false">
+  Include mitigation options in the response. **Not yet implemented** — currently ignored.
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean" required>
+  Whether the ESA check completed successfully.
+</ResponseField>
+
+<ResponseField name="esa_required" type="boolean" required>
+  Whether any product in the request has ESA label language. If `false`, no further action is needed.
+</ResponseField>
+
+<ResponseField name="account_id" type="string" required>
+  The account ID from your request.
+</ResponseField>
+
+<ResponseField name="provider_id" type="string" required>
+  The provider ID from your request.
+</ResponseField>
+
+<ResponseField name="field_id" type="string">
+  Internal AcreBlitz field UUID. Only present when `esa_required` is `true`.
+</ResponseField>
+
+<ResponseField name="application_event_id" type="string">
+  Internal AcreBlitz application event UUID. Only present when `esa_required` is `true`.
+</ResponseField>
+
+<ResponseField name="mitigations_required" type="boolean">
+  Whether the user must select mitigation practices. Only present when `esa_required` is `true`.
+</ResponseField>
+
+<ResponseField name="mitigation_portal_url" type="string">
+  Secure URL to the white-labeled mitigation portal. Valid for 1 year. Only present when `esa_required` is `true`.
+</ResponseField>
+
+<ResponseField name="expires_at" type="string">
+  ISO 8601 timestamp for when the portal link expires. Only present when `esa_required` is `true`.
+</ResponseField>
+
+<ResponseField name="user_email" type="string">
+  The user email from your request, if provided.
+</ResponseField>
+
+<ResponseField name="products" type="array" required>
+  Array of product results. Each product contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `epa_number` | string | EPA registration number |
+  | `product_name` | string | Product name |
+  | `product_status` | string \| null | Registration status (`"Active"`, `"Inactive"`, or `null` if not found) |
+  | `esa_required` | boolean \| null | Whether this specific product has ESA label language |
+  | `pulas` | array | PULAs affecting this product (empty if no ESA restrictions) |
+
+  Each PULA in the `pulas` array contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `pula_id` | integer | PULA identifier |
+  | `event_name` | string | Regulatory event name (e.g., `"NMFS BiOps 2024"`) |
+  | `status` | string | PULA status (e.g., `"effective"`) |
+  | `effective_date` | string | Date the PULA became effective |
+  | `codes` | string | Limitation codes |
+  | `geometry` | object \| null | GeoJSON geometry (only if `include_geometry=true`) |
+  | `limitations` | array | Specific limitations for this PULA |
+
+  Each limitation contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `limitation_id` | integer | Limitation identifier |
+  | `code` | string | Limitation code (e.g., `"RPMDZ"`) |
+  | `limitation` | string | Full limitation text |
+  | `mitigation_options` | array | Required mitigation types (e.g., `["epa_runoff"]`) |
+</ResponseField>
+
+<ResponseField name="summary" type="object" required>
+  Summary statistics for the check.
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `total_pulas` | integer | Total PULAs found affecting the field |
+  | `total_limitations` | integer | Total limitations across all PULAs |
+  | `products_checked` | integer | Number of products checked |
+  | `products_with_limitations` | integer | Number of products with active limitations |
+</ResponseField>
+
+## Examples
+
+<Accordion title="ESA Required — Full Response">
+
+When one or more products have ESA label language and the field intersects active PULAs:
+
+```json
+{
+  "success": true,
+  "esa_required": true,
+  "account_id": "acct-98765",
+  "provider_id": "your_provider_id",
+  "field_id": "f7a1b2c3-d4e5-6789-abcd-ef0123456789",
+  "application_event_id": "a1b2c3d4-e5f6-7890-abcd-ef0123456789",
+  "mitigations_required": true,
+  "mitigation_portal_url": "https://acreblitz.com/esaportal/field?t=a2a73941e3872bdcd6aae3206060f19db3892aec67bfbef27a2d015b1bf98bc7",
+  "expires_at": "2026-06-22T23:59:59Z",
+  "user_email": null,
+  "products": [
+    {
+      "epa_number": "62719-442",
+      "product_name": "INTREPID 2F",
+      "product_status": "Active",
+      "esa_required": true,
+      "pulas": [
+        {
+          "pula_id": 95,
+          "event_name": "NMFS BiOps 2024",
+          "status": "effective",
+          "effective_date": "2024-04-30",
+          "codes": "RPMDZ",
+          "limitations": [
+            {
+              "limitation_id": 201,
+              "code": "RPMDZ",
+              "limitation": "Do not apply when soil is saturated...",
+              "mitigation_options": ["epa_runoff"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_pulas": 1,
+    "total_limitations": 1,
+    "products_checked": 1,
+    "products_with_limitations": 1
+  }
+}
+```
+
+</Accordion>
+
+<Accordion title="ESA Not Required — Early Exit">
+
+When no products in the tank mix have ESA label language, the API returns early without storing data or creating a portal link:
+
+```json
+{
+  "success": true,
+  "esa_required": false,
+  "account_id": "acct-98765",
+  "provider_id": "your_provider_id",
+  "field_id": null,
+  "application_event_id": null,
+  "mitigations_required": null,
+  "mitigation_portal_url": null,
+  "expires_at": null,
+  "user_email": null,
+  "products": [
+    {
+      "epa_number": "12345-678",
+      "product_name": "GENERIC HERBICIDE",
+      "product_status": "Active",
+      "esa_required": false,
+      "pulas": []
+    }
+  ],
+  "summary": {
+    "total_pulas": 0,
+    "total_limitations": 0,
+    "products_checked": 1,
+    "products_with_limitations": 0
+  }
+}
+```
+
+</Accordion>
+
+## Notes
+
+<Note>
+  **Idempotency**: The `application_id` field makes the endpoint idempotent. Resubmitting with the same `application_id` updates the existing record rather than creating a duplicate. Use this to refresh results when products or application details change.
+</Note>
+
+<Note>
+  **Provider Field ID Fallback**: If you don't provide `provider_field_id`, the `application_id` is used as the field identifier for report download endpoints.
+</Note>
+
+<Note>
+  **Flexible Application Methods**: You can use your own terminology for `application_method` (e.g., `"Drone"`, `"Helicopter"`, `"Ground Boom"`). The API automatically maps these to the correct regulatory categories.
+</Note>
+
+<Note>
+  **GeoJSON Format**: The `field_boundary` must be a GeoJSON Feature with a Polygon or MultiPolygon geometry in EPSG:4326 (WGS84). MultiPolygon is supported for fields with excluded areas or multiple sections.
+</Note>
