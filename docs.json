@@ -75,6 +75,13 @@
       "href": "https://www.acreblitz.com/contact"
     }
   },
+  "contextual": {
+    "options": [
+      "copy",
+      "chatgpt",
+      "claude"
+    ]
+  },
   "footer": {
     "socials": {
       "website": "https://www.acreblitz.com"
