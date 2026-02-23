@@ -10,7 +10,7 @@
   "favicon": "/favicon.png",
   "logo": {
     "light": "/logo/acreblitz_logo.png",
-    "dark": "/logo/acreblitz_logo.png"
+    "dark": "/logo/acre_blitz_darkmode.png"
   },
   "api": {
     "mdx": {
