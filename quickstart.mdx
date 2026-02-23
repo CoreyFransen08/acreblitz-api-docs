@@ -163,6 +163,34 @@ result = response.json()
 
 The response tells you whether ESA compliance is required and provides a portal URL if it is.
 
+The first thing to check is the `esa_required` field. If **none** of the products in the tank mix have ESA obligations, the API returns early with `esa_required: false` — no field record is created, no PULA analysis is performed, and no portal URL is generated.
+
+```json Example Response — No ESA Required
+{
+  "success": true,
+  "esa_required": false,
+  "account_id": "acct-98765",
+  "provider_id": "your_provider_id",
+  "products": [
+    {
+      "epa_number": "62719-442",
+      "product_name": "INTREPID 2F",
+      "product_status": "Active",
+      "esa_required": false,
+      "pulas": []
+    }
+  ],
+  "summary": {
+    "total_pulas": 0,
+    "total_limitations": 0,
+    "products_checked": 1,
+    "products_with_limitations": 0
+  }
+}
+```
+
+When `esa_required` is `true`, the full PULA analysis is performed and the response includes a `field_id`, `application_event_id`, and a `mitigation_portal_url`.
+
 ```json Example Response — ESA Required
 {
   "success": true,
