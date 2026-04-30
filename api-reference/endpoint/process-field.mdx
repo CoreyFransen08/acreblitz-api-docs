@@ -1,0 +1,358 @@
+---
+title: Process Field
+api: "POST /api/v1/process-field"
+description: Process a field boundary and auto-apply runoff mitigation measures
+---
+
+Submit a field boundary to run the full ESA runoff pipeline. The endpoint:
+
+1. Resolves or creates the field by `(provider_field_id, provider_id)`.
+2. Persists the boundary and runs county/state intersection.
+3. Detects intersecting PULAs.
+4. Retrieves USDA SSURGO soil data (dominant hydrologic group, average slope).
+5. Auto-applies field-level `epa_runoff` mitigation measures based on slope, county relief points, and soil hydrologic group.
+6. Optionally returns the full `epa_runoff` mitigation options tree with selection state for the field/year.
+
+This endpoint is idempotent on `(provider_field_id, provider_id)` — resubmitting the same field updates the existing record rather than creating a duplicate, and previously-applied mitigation measures are not re-inserted.
+
+## Request Body
+
+### Required Fields
+
+<ParamField body="provider_id" type="string" required>
+  Your internal provider identifier, assigned by AcreBlitz.
+</ParamField>
+
+<ParamField body="provider_field_id" type="string" required>
+  Your internal field identifier. The (provider_field_id, provider_id) pair uniquely identifies a field across calls.
+</ParamField>
+
+<ParamField body="account_id" type="string" required>
+  Your customer account identifier. Stored on the field record for downstream reporting.
+</ParamField>
+
+<ParamField body="field_name" type="string" required>
+  Name of the field. Stored on the field record and displayed in compliance reports.
+</ParamField>
+
+<ParamField body="field_boundary" type="object" required>
+  GeoJSON Feature with Polygon or MultiPolygon geometry in EPSG:4326 (WGS84).
+
+  ```json Example
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [-95.284265, 42.263233],
+        [-95.284470, 42.254180],
+        [-95.267536, 42.254063],
+        [-95.267341, 42.263116],
+        [-95.284265, 42.263233]
+      ]]
+    }
+  }
+  ```
+</ParamField>
+
+### Optional Fields
+
+<ParamField body="year" type="integer">
+  Year for the annual mitigation record. Defaults to the current calendar year.
+</ParamField>
+
+<ParamField body="include_mitigation_options" type="boolean" default="false">
+  When `true`, the response includes the full `epa_runoff` mitigation options tree (categories → options → sub-options) with a `selected` flag on each sub-option indicating whether it is currently applied to the field for the given year, plus a `total_points` tally.
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean" required>
+  Whether the pipeline completed end-to-end.
+</ResponseField>
+
+<ResponseField name="field_id" type="string" required>
+  Internal AcreBlitz field UUID resolved from `provider_field_id`.
+</ResponseField>
+
+<ResponseField name="provider_field_id" type="string" required>
+  Echo of the provider's field identifier from the request.
+</ResponseField>
+
+<ResponseField name="soil_data" type="object">
+  Soil analysis from USDA SSURGO. `null` if the soil step failed (the rest of the pipeline still runs).
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `dominant_hydgrpdcd` | string \| null | Dominant hydrologic soil group (`A`, `B`, `C`, `D`, or compound like `B/D`) |
+  | `weighted_avg_slopegradwta` | number \| null | Area-weighted average slope (percent) |
+  | `hydgrpdcd_analysis` | object | Per-HSG breakdown with `area_sqm` and `percentage` |
+  | `musym_analysis` | object | Per-map-unit breakdown with `muname`, `area_sqm`, and `percentage` |
+</ResponseField>
+
+<ResponseField name="counties" type="array">
+  Counties intersecting the field. Each entry contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `geo_id` | string | County GEOID (e.g. `"0500000US19153"`) |
+  | `state_fips` | string | State FIPS code |
+  | `county_fips` | string | County FIPS code |
+  | `county_name` | string | County name |
+  | `mitigation_points` | integer | EPA county-relief mitigation points (`0`, `2`, `3`, or `6`) |
+</ResponseField>
+
+<ResponseField name="pulas" type="array" required>
+  PULA IDs intersecting the field boundary.
+</ResponseField>
+
+<ResponseField name="mitigations_applied" type="array" required>
+  Sorted list of `epa_runoff` `sub_option_id`s currently applied to the field for the given year. Includes any auto-applied measures from this call as well as any pre-existing measures.
+</ResponseField>
+
+<ResponseField name="mitigation_options" type="array">
+  Full `epa_runoff` mitigation tree (only present when `include_mitigation_options=true`). An array of categories, each with nested options and sub-options.
+
+  Each **category** contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `id` | integer | Category ID |
+  | `code` | string | Category code |
+  | `label` | string | Display label |
+  | `description` | string \| null | Optional description |
+  | `max_select` | integer \| null | Maximum sub-options selectable in this category |
+  | `sort_order` | integer | Display order |
+  | `options` | array | Nested options |
+
+  Each **option** contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `id` | integer | Option ID |
+  | `code` | string | Option code |
+  | `label` | string | Display label |
+  | `description` | string \| null | Optional description |
+  | `has_sub_options` | boolean | Whether this option has selectable sub-options |
+  | `max_select` | integer \| null | Maximum sub-options selectable in this option |
+  | `helper_text` | string \| null | UX helper text |
+  | `helper_link` | string \| null | UX helper URL |
+  | `sub_options` | array | Nested sub-options |
+
+  Each **sub-option** contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `id` | integer | Sub-option ID (matches entries in `mitigations_applied`) |
+  | `code` | string \| null | Sub-option code |
+  | `label` | string | Display label |
+  | `points` | integer \| null | Mitigation points awarded if selected |
+  | `hydrologic_soil_group` | string \| null | HSG filter (`A_B`, `C_D`, or `null` for all) |
+  | `helper_text` | string \| null | UX helper text |
+  | `helper_link` | string \| null | UX helper URL |
+  | `selected` | boolean | Whether this sub-option is currently applied to the field for the given year |
+  | `implementation_date` | string \| null | Date the measure was applied (only when `selected=true`) |
+  | `notes` | string \| null | Notes recorded with the measure (only when `selected=true`) |
+</ResponseField>
+
+<ResponseField name="steps" type="object" required>
+  Per-step status for the pipeline. Keys: `county_state`, `pula_detection`, `soil_data`, `auto_mitigations`, and (when requested) `mitigation_options`. Each value contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `success` | boolean | Whether this step succeeded |
+  | `error` | string \| null | Error message if the step failed |
+  | `data` | object \| null | Step-specific result payload |
+</ResponseField>
+
+<ResponseField name="summary" type="object" required>
+  Roll-up counters for the call.
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `pula_count` | integer | Number of PULAs intersecting the field |
+  | `soil_available` | boolean | Whether soil data was retrieved successfully |
+  | `mitigations_applied_count` | integer | Number of currently-applied `epa_runoff` sub-options |
+  | `total_points` | integer | Sum of points across selected sub-options (only computed when `include_mitigation_options=true`) |
+</ResponseField>
+
+## Examples
+
+<Accordion title="Minimal Request">
+
+```bash cURL
+curl -X POST https://esa.acreblitz.com/api/v1/process-field \
+  -H "X-API-Key: $ACREBLITZ_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider_id": "your_provider_id",
+    "provider_field_id": "field-001",
+    "account_id": "acct-98765",
+    "field_name": "North 40",
+    "field_boundary": {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-95.284265, 42.263233],
+          [-95.284470, 42.254180],
+          [-95.267536, 42.254063],
+          [-95.267341, 42.263116],
+          [-95.284265, 42.263233]
+        ]]
+      }
+    }
+  }'
+```
+
+</Accordion>
+
+<Accordion title="Full Response (without mitigation_options)">
+
+```json
+{
+  "success": true,
+  "field_id": "a3393468-8c3a-45a3-9fce-9d71bdb58489",
+  "provider_field_id": "test_field_001",
+  "soil_data": {
+    "dominant_hydgrpdcd": "C",
+    "weighted_avg_slopegradwta": 9.1,
+    "hydgrpdcd_analysis": {
+      "C": { "area_sqm": 471285.35, "percentage": 50.83 },
+      "D": { "area_sqm": 249185.38, "percentage": 26.87 },
+      "B/D": { "area_sqm": 130124.66, "percentage": 14.03 }
+    },
+    "musym_analysis": {
+      "M162B": {
+        "muname": "Downs silt loam, till plain, 2 to 5 percent slopes",
+        "area_sqm": 231573.23,
+        "percentage": 24.97
+      }
+    }
+  },
+  "counties": [
+    {
+      "geo_id": "0500000US19153",
+      "state_fips": "19",
+      "county_fips": "153",
+      "county_name": "Polk",
+      "mitigation_points": 2
+    },
+    {
+      "geo_id": "0500000US19181",
+      "state_fips": "19",
+      "county_fips": "181",
+      "county_name": "Warren",
+      "mitigation_points": 0
+    }
+  ],
+  "pulas": [87],
+  "mitigations_applied": [12, 24],
+  "mitigation_options": null,
+  "steps": {
+    "county_state": { "success": true, "error": null, "data": {} },
+    "pula_detection": { "success": true, "error": null, "data": { "pula_count": 1 } },
+    "soil_data": { "success": true, "error": null, "data": { "dominant_hydgrpdcd": "C", "weighted_avg_slopegradwta": 9.1 } },
+    "auto_mitigations": { "success": true, "error": null, "data": { "mitigations_applied": [12, 24] } }
+  },
+  "summary": {
+    "pula_count": 1,
+    "soil_available": true,
+    "mitigations_applied_count": 2,
+    "total_points": 0
+  }
+}
+```
+
+</Accordion>
+
+<Accordion title="Mitigation Options Slice (`include_mitigation_options=true`)">
+
+The `mitigation_options` array contains the full `epa_runoff` tree (6 categories, ~30 options, ~50+ sub-options). Each sub-option carries a `selected` flag — `true` if its `id` appears in `mitigations_applied`. The slice below shows just the **County-based mitigation relief** option to illustrate the structure; your response will include all categories.
+
+```json
+{
+  "id": 2,
+  "code": "field_characteristics",
+  "label": "Field Characteristics",
+  "description": "Natural characteristics of the field that reduce runoff",
+  "max_select": null,
+  "sort_order": 2,
+  "options": [
+    {
+      "id": 13,
+      "code": "county_based_mitigation_relief",
+      "label": "County-based mitigation relief",
+      "description": "Pesticide runoff value based off of the runoff vulnerability map and County List",
+      "has_sub_options": true,
+      "max_select": 1,
+      "helper_text": "EPA analyzed the runoff vulnerability of counties...",
+      "helper_link": "https://www.epa.gov/pesticides/mitigation-menu-measure-descriptions#pesticide-runoff",
+      "sort_order": 1,
+      "sub_options": [
+        {
+          "id": 12,
+          "label": "Pesticide runoff vulnerability - high",
+          "points": 0,
+          "hydrologic_soil_group": null,
+          "selected": true,
+          "implementation_date": "2026-04-29",
+          "notes": "Using available county points from Warren - 0 points."
+        },
+        {
+          "id": 11,
+          "label": "Pesticide runoff vulnerability - low",
+          "points": 3,
+          "hydrologic_soil_group": null,
+          "selected": false,
+          "implementation_date": null,
+          "notes": null
+        }
+        // ... additional sub-options (id 9, 10) omitted
+      ]
+    }
+    // ... additional options in this category omitted
+  ]
+}
+// ... 5 more categories omitted (Application Parameters, In-Field Mitigation Measures,
+// Edge-of-Field Mitigation Measures, Adjacent-to-Field Mitigation Measures, Other)
+```
+
+When `total_points` in `summary` is computed (only when `include_mitigation_options=true`), it is the sum of `points` across every sub-option where `selected=true`.
+
+</Accordion>
+
+## Auto-Applied Mitigation Logic
+
+The `auto_mitigations` step inspects the field's soil, slope, and county data and inserts EPA-approved field-level credits into the annual runoff mitigation record:
+
+| Trigger | Sub-option ID | Description |
+|---------|---------------|-------------|
+| Always applied | 24 | Digital tracking credit |
+| Slope < 3% | 17 | Naturally low slope or flat fields |
+| County `mitigation_points = 0` | 12 | Pesticide runoff vulnerability — high |
+| County `mitigation_points = 2` | 10 | Pesticide runoff vulnerability — medium |
+| County `mitigation_points = 3` | 11 | Pesticide runoff vulnerability — low |
+| County `mitigation_points = 6` | 9 | Pesticide runoff vulnerability — very low |
+| Soil HSG = `A` | 27 | Predominantly sandy soils (HSG A) |
+| Soil HSG = `B` or `A/B` | 28 | Moderately sandy soils (HSG B) |
+
+When a county has multiple `mitigation_points` values, the **lowest** value is used. Existing measures are never duplicated — re-running the endpoint on the same field is safe.
+
+## Notes
+
+<Note>
+  **Idempotency**: The `(provider_field_id, provider_id)` pair makes the endpoint idempotent. Resubmitting the same field updates the existing record and replaces its boundary, but previously-applied mitigation measures are preserved.
+</Note>
+
+<Note>
+  **Fail-forward soil step**: If USDA SSURGO is unreachable, `soil_data` is `null` and the `soil_data` step is marked failed, but the rest of the pipeline still runs. Soil-dependent auto-credits (sub-options 17, 27, 28) are simply skipped in that case.
+</Note>
+
+<Note>
+  **Selection state**: Use `mitigations_applied` for a flat list of currently-applied sub-option IDs, or `include_mitigation_options=true` to see the full tree with each sub-option's `selected` flag. The selection set is the same in both views.
+</Note>
+
+<Note>
+  **GeoJSON Format**: The `field_boundary` must be a GeoJSON Feature with a Polygon or MultiPolygon geometry in EPSG:4326 (WGS84). MultiPolygon is supported for fields with excluded areas or multiple sections.
+</Note>

@@ -52,6 +52,12 @@
             ]
           },
           {
+            "group": "Field Processing",
+            "pages": [
+              "api-reference/endpoint/process-field"
+            ]
+          },
+          {
             "group": "Reports",
             "pages": [
               "api-reference/endpoint/enlist-report",
