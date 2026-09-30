@@ -8,7 +8,99 @@ Assess ESA and PULA requirements for one pesticide application.
 
 ## Request
 
-<Snippet file="v2-application-inputs.mdx" />
+<ParamField body="provider_id" type="string" required>
+  Your assigned provider identifier. It must match the API key.
+</ParamField>
+
+<ParamField body="account_id" type="string" required>
+  Your customer account identifier.
+</ParamField>
+
+<ParamField body="field_name" type="string" required>
+  Field name shown in the portal and compliance reports.
+</ParamField>
+
+<ParamField body="application_id" type="string" required>
+  Your application identifier, unique within this provider and account. Resubmit this application to refresh its assessment.
+</ParamField>
+
+<ParamField body="application_method" type="string" required>
+  Supported method: for example `Broadcast-Ground`, `Broadcast-Air`, `Drone`, or `Airblast`. Unsupported values return 422. Liberty Ultra is ground only.
+</ParamField>
+
+<ParamField body="application_date" type="string" required>
+  A valid calendar date in `YYYY-MM-DD` format.
+</ParamField>
+
+<ParamField body="field_boundary" type="object" required>
+  GeoJSON Feature containing a Polygon or MultiPolygon in EPSG:4326. Rings must be closed; self-intersections are rejected. Maximum 5,000 positions across the field boundary.
+</ParamField>
+
+<ParamField body="products" type="object[]" required>
+  One to 100 product objects. See the product fields below.
+</ParamField>
+
+<ParamField body="crop" type="string[]" required>
+  Crop names. An explicit empty array is accepted.
+</ParamField>
+
+<ParamField body="provider_field_id" type="string">
+  Your field identifier, used for compliance report requests. If omitted or null, the application identifier is used.
+</ParamField>
+
+<ParamField body="provider_group_id" type="string">
+  Your work-order or job identifier. Optional for a single check; required for bulk submissions.
+</ParamField>
+
+<ParamField body="pest" type="string[]">
+  Default pests for products without their own `pest` list. Every product must have a nonempty effective pest list.
+</ParamField>
+
+<ParamField body="user_email" type="string">
+  Optional applicator or grower email address; nullable.
+</ParamField>
+
+<ParamField body="gpa" type="number">
+  Positive spray gallons per acre. Required to normalize rates expressed per `100 Gal` or `100 Cu Ft`; nullable.
+</ParamField>
+
+<ParamField body="droplet_size" type="string">
+  ASABE category or code: `EF`, `VF`, `F`, `M`, `C`, `VC`, `EC`, or `UC`. Unsupported values return 422; nullable.
+</ParamField>
+
+<ParamField body="boom_height" type="string">
+  `low` or `high` for ground applications; nullable.
+</ParamField>
+
+### Product fields
+
+| Field | Required | Meaning |
+|---|---|---|
+| `product_name` | Yes | Product name. |
+| `rate` | Yes | Nonnegative application rate. |
+| `rate_unit` | Yes | Rate unit, for example `fl oz/ac` or `lb/ac`. |
+| `epa_number` | No | EPA registration number; may be omitted or null for an adjuvant. |
+| `rate_unit_state` | No | `L`, `S`, `D`, `liquid`, `solid`, or `dry`; resolves ambiguous ounce units. |
+| `row_spacing_inches` | No | Positive row spacing; required for row-length rate units. |
+| `pest` | No | Nonempty product pest list; overrides the application pest default. |
+
+### Response options
+
+<ParamField body="include_geometry" type="boolean" default="false">
+  Include PULA field-boundary data when available.
+</ParamField>
+
+<ParamField body="include_soil_analysis" type="boolean" default="false">
+  Include analysis under `compliance.soil.analysis` when soil is available.
+</ParamField>
+
+<ParamField body="include_mitigations" type="boolean" default="false">
+  Include available options under `compliance.mitigation_options`.
+</ParamField>
+
+<ParamField body="buffer_distance_miles" type="number" default="1">
+  PULA search buffer distance, clamped to 0–10 miles.
+</ParamField>
 
 ## Response
 

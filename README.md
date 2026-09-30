@@ -11,13 +11,13 @@ This is a separate Git repository for the Mintlify documentation site.
 
 The V2 bulk reference documents shared products/crops, per-field replacement, required group identifiers, idempotency, job polling, pagination, retention and per-item outcomes. The V2 guides cover authentication, migration, assessment interpretation, soil reuse and errors. Examples use placeholder provider identifiers and environment variables for API keys; never add real provider credentials to this public repository.
 
-`snippets/v2-application-inputs.mdx` holds the shared single-check input documentation. Update it and the bulk reference when request schemas change.
+Single-check inputs live directly in `v2/api-reference/endpoint/esa-check.mdx` so the hosted Markdown export contains every parameter. Update that page and the bulk reference when request schemas change.
 
 ## Agent access and validation
 
 The public documentation host is `https://docs.acreblitz.com`. Agents can fetch HTML, append `.md` to a page URL, or use the hosted site's `Accept: text/markdown` support. No documentation login or API key is required. API calls still require a provider key.
 
-Mintlify's automatic `llms.txt` and `llms-full.txt` cover the default version. This repo overrides both with generated files covering **both V1 and V2**. The full export expands snippets and retains endpoint URLs, parameters, examples, and errors. Do not edit those generated files manually.
+Mintlify's automatic `llms.txt` and `llms-full.txt` cover the default version. This repo overrides both with generated files covering **both V1 and V2**. The full export expands snippets and retains endpoint URLs, parameters, examples, and errors. The index links to the full export with a content-hash query parameter to avoid stale CDN copies after publication. Do not edit those generated files manually.
 
 After editing pages or navigation, regenerate and check the exports:
 

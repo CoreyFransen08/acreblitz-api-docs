@@ -3,6 +3,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(await readFile(path.join(root, 'docs.json'), 'utf8'));
 const origin = 'https://docs.acreblitz.com';
@@ -55,6 +56,8 @@ for (const version of config.navigation.versions) {
 }
 index+='\n## Complete content\n\n- [All V1 and V2 documentation](https://docs.acreblitz.com/llms-full.txt): Full page text, parameters, and request/response examples. Large file; prefer individual pages for focused questions.\n';
 const full=intro+'\n'+entries.map(e=>`# ${e.version}: ${e.title}\n\nSource: ${origin}/${e.slug}.md\n\n> ${e.description}\n${e.api ? `\nEndpoint: \`${e.api}\`\n` : ''}\n${e.content}\n`).join('\n---\n\n');
+const fullPath=`/llms-full.txt?version=${createHash('sha256').update(full).digest('hex').slice(0,16)}`;
+index=index.replace(`${origin}/llms-full.txt)`, `${origin}${fullPath})`);
 const args=process.argv.slice(2);
 for (const [file, value] of [['llms.txt',index],['llms-full.txt',full]]) {
   if (args.includes('--write')) await writeFile(path.join(root,file),value);
@@ -75,6 +78,7 @@ if (baseIndex !== -1) {
       const body=await response.text();
       const readable=kind==='html' ? body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<[^>]*>/g,' ').replace(/&#x27;|&#39;|&apos;/g,"'").replace(/&quot;/g,'"').replace(/&amp;/g,'&') : body;
       const missing=expected.filter(s=>!readable.includes(s));
+      if(kind==='markdown' && /<Snippet\b|^import\s/m.test(body)) throw new Error('Unresolved snippet in hosted Markdown');
       if(!response.ok || missing.length || (kind!=='html' && /<!doctype html|<html[\s>]/i.test(body))) throw new Error(`HTTP ${response.status}; missing ${missing.join(', ') || 'none'}; ${response.headers.get('content-type')}`);
       console.log(`PASS ${url.pathname} (${body.length} chars)`);
     } catch(error) { failed++; console.error(`FAIL ${url.pathname}: ${error.message}`); }
@@ -83,13 +87,13 @@ if (baseIndex !== -1) {
     const route=entry.slug==='index' ? '/' : '/'+entry.slug.replace(/\/index$/,'');
     const expected=[entry.title];
     if(entry.api) expected.push('curl','X-API-Key');
-    if(entry.slug==='v2/api-reference/endpoint/esa-check') expected.push('provider_id','product_name','application_method','rate_unit');
+    if(entry.slug==='v2/api-reference/endpoint/esa-check') expected.push('Your assigned provider identifier','Supported method','provider_id','product_name','application_method','rate_unit');
     if(entry.slug==='v2/api-reference/endpoint/bulk-submit') expected.push('Where each value belongs','Pest precedence','provider_group_id','Duplicate application_id');
     await check(new URL(route,base), expected,'html');
     if(!htmlOnly) await check(new URL('/'+entry.slug+'.md',base),expected,'markdown');
   }
-  await check(new URL('/llms.txt',base), selected.map(e=>'/'+e.slug+'.md'),'index');
-  await check(new URL('/llms-full.txt',base), selected.map(e=>e.title),'markdown');
+  await check(new URL('/llms.txt',base), [...selected.map(e=>'/'+e.slug+'.md'),fullPath],'index');
+  await check(new URL(fullPath,base), selected.map(e=>e.title),'markdown');
   if(failed) process.exitCode=1;
   else console.log(`All requested HTTP reads passed without credentials or browser JavaScript.`);
 }
