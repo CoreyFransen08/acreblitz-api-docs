@@ -1,0 +1,315 @@
+---
+title: "Errors and retries"
+description: "V2 error codes, validation examples, bulk item failures, assessment issues, and retry rules"
+---
+
+Check the HTTP status and `Content-Type` before parsing a response. Most V2 failures use the JSON envelope below. Validation uses `error.details` instead of `error.message`. Request rate limiting returns plain text. A bulk results response can return HTTP 200 while individual fields have failed.
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PROVIDER_MISMATCH",
+    "message": "API key does not authorize this provider"
+  }
+}
+```
+
+Route handlers include `X-Request-ID`; keep it for support. Failures rejected earlier, such as malformed JSON, oversized bodies, or rate limits, may not include that header. An unknown URL uses the server's ordinary 404 response rather than the V2 JSON envelope.
+
+## HTTP error catalog
+
+These are the public codes emitted by the current V2 routes and their processing workflows. Each endpoint links here and lists its additional errors. Do not branch on message text; messages can vary while a code remains the same.
+
+### Authentication and request errors
+
+| HTTP | Code | Example trigger | What you should do |
+|---|---|---|---|
+| 401 | `UNAUTHORIZED` | Missing, invalid, inactive, expired, or oversized API key. | Supply a valid `X-API-Key`. |
+| 403 | `PROVIDER_MISMATCH` | Your key belongs to provider A but the body names provider B. | Use the provider assigned to the key. |
+| 422 | `INVALID_REQUEST` | Missing `provider_group_id`, duplicate bulk application IDs, invalid dates, or unsupported method/droplet size. | Correct `error.details`; do not retry unchanged. |
+| 400 | `REQUEST_FAILED` | Malformed JSON such as a trailing comma. | Fix the JSON syntax. |
+| 413 | `REQUEST_FAILED` | JSON body exceeds 5 MB. | Split the submission or reduce field boundary detail. |
+| 409 | `REQUEST_FAILED` | A concurrent write causes an identity conflict that lacks a more specific public code. | Check existing application/field identities before retrying. Contact support if repeated. |
+| 503 | `REQUEST_FAILED` | An unexpected dependency, connection, or processing failure. | Retry with backoff; contact support if repeated. |
+| 429 | No JSON code; plain text | API-key or shared-IP request limit reached. | Honor `Retry-After` and reduce request frequency, including polling. |
+
+### Bulk job errors
+
+| HTTP | Code | Example trigger | What you should do |
+|---|---|---|---|
+| 409 | `IDEMPOTENCY_CONFLICT` | Reuse a submission key after changing a field's rate or boundary. | Replay the original effective input, or use a new key for an intentionally new job. |
+| 429 | `BULK_BACKLOG_EXCEEDED` | The submitted fields would exceed the current pending-work limit. | Wait, then retry with the same key and input. |
+| 404 | `BULK_JOB_NOT_FOUND` | Job ID is absent, belongs to another provider, or has expired. | Check the key and job ID; retain results before their 30-day expiration. |
+
+A malformed job UUID returns `422 INVALID_REQUEST`, not `BULK_JOB_NOT_FOUND`. Bulk submission validates all fields before acceptance; a 422 creates no job.
+
+### Field and application errors
+
+These can occur during a single check, field processing, application-time drift calculation, or as a failed bulk item's `error`. Report lookup can also return `DUPLICATE_FIELD`.
+
+| HTTP when returned directly | Code | Example trigger | What you should do |
+|---|---|---|---|
+| 409 | `DUPLICATE_FIELD` | More than one stored field matches the supplied provider field identity. | Contact support to resolve the ambiguous identity. |
+| 409 | `FIELD_OWNERSHIP_CONFLICT` | The provider field identity already belongs to a different account. | Use the correct account or a distinct provider field identifier. |
+| 409 | `DUPLICATE_APPLICATION` | More than one existing application matches your application identity. | Contact support to resolve the ambiguity. |
+| 409 | `APPLICATION_FIELD_CONFLICT` | Reuse an application ID for a different field. | Keep the original field or use a new application ID. |
+| 409 | `PROCESSING_CONFLICT` | Another request is processing the same field or application. | Wait for that work to finish, then retry. |
+| 409 | `FIELD_CHANGED` | The field changed while its assessment was running. | Retry using the current field boundary. |
+| 409 | `APPLICATION_CHANGED` | The application changed while its assessment was running. | Refresh the application inputs, then retry. |
+| 404 | `APPLICATION_NOT_FOUND` | The application event is missing or outside your provider's scope. | Use the `application_event_id` returned for your provider. |
+| 422 | `UNSUPPORTED_APPLICATION_METHOD` | A processing workflow cannot resolve the saved application method. | Supply a supported method. New HTTP requests normally reject this earlier as `INVALID_REQUEST`. |
+| 422 | `NO_FIELD_GEOMETRY` | An application-time drift request references a field without an active boundary. | Recheck the application with a valid field boundary. |
+| 422 | `PRODUCT_MISMATCH` | A rate update's product index and EPA number do not identify the same saved product, or an index is repeated. | Match the saved product order and EPA number exactly. |
+| 422 | `INVALID_APPLICATION` | The saved application cannot be rechecked with the requested application-time changes. | Correct the application with a new ESA check before recalculating drift. |
+
+### Portal and report errors
+
+| HTTP | Code | Example trigger | What you should do |
+|---|---|---|---|
+| 404 | `FIELD_NOT_FOUND` | No provider-owned field with an active, unexpired portal matches the report request. | Check `provider_field_id` and portal availability. |
+| 404 | `GROUP_NOT_FOUND` | No applications match the group and account on a group-lock request. | Check both identifiers and wait for bulk items to finish creating applications. |
+| 403 | `INVALID_TOKEN` | Portal access is requested for an archived field. | Use an active field; contact support if archival is unexpected. |
+| 403 | `INACTIVE_TOKEN` | The field's portal is inactive. | Contact support to restore portal availability. |
+| 403 | `PORTAL_EXPIRED` | The field's portal access period has expired. | Arrange renewed portal availability; a new signed link alone cannot extend it. |
+| 400, 403, 404, 422, or 502 | `PORTAL_REQUEST_FAILED` | The report service rejects or fails the request. | For 400/422 check parameters; for 403/404 check availability; for 502 retry with backoff. |
+| 502 | `INVALID_REPORT` | The report service responds successfully without a PDF. | Retry, then contact support if repeated. |
+| 503 | `PORTAL_SERVICE_UNCONFIGURED` | The report service is unavailable because setup is incomplete. | Contact support; changing the request will not resolve it. |
+| 503 | `PORTAL_SAS_UNCONFIGURED` | Portal link signing is unavailable. | Contact support. This can also affect checks or field processing for providers using signed links. |
+
+Portal website errors are separate from this API catalog. For example, an expired signed link opened in the portal is not an API-key authentication failure.
+
+### Capacity and deadline errors
+
+| HTTP | Code | Example trigger | What you should do |
+|---|---|---|---|
+| 503 | `CAPACITY_EXCEEDED` | All concurrent processing slots are occupied. | Back off; bulk submission and polling do not consume these processing slots. |
+| 503 | `CAPACITY_UNAVAILABLE` | Processing capacity cannot be determined from the current service configuration. | Contact support if it persists. |
+| 503 | `DEADLINE_EXCEEDED` | The request exceeds its processing budget. | Retry safely; a timeout does not prove no work was saved. |
+| 503 | `REQUEST_CANCELLED` | Processing is cancelled during admission or execution. | Retry if you still need the operation. A disconnected client may receive no response. |
+
+## Validation examples
+
+Bulk submission, job status, and results validation return an array in `error.details`. Other endpoints return flattened `error.details.formErrors` and `error.details.fieldErrors`. Validation runs before API-key authentication, so invalid inputs can return 422 even with a missing key.
+
+### Missing required bulk group
+
+Omitting `provider_group_id` from an otherwise valid bulk request returns HTTP 422:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "details": [{
+      "code": "invalid_type",
+      "expected": "string",
+      "received": "undefined",
+      "path": ["provider_group_id"],
+      "message": "Required"
+    }]
+  }
+}
+```
+
+### Missing effective product pests
+
+If the second field's first product has no product pests, field pests, or top-level pest default:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "details": [{
+      "code": "custom",
+      "path": ["fields", 1, "products", 0, "pest"],
+      "message": "Provide pests for this product or a parent pest default"
+    }]
+  }
+}
+```
+
+`fields[1]` means the second field; `products[0]` means its first product. Set `pest` at one of those three levels. An empty list does not satisfy the requirement.
+
+### A top-level option placed inside a field
+
+Putting `include_geometry` inside the first field returns:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "details": [{
+      "code": "unrecognized_keys",
+      "keys": ["include_geometry"],
+      "path": ["fields", 0],
+      "message": "Unrecognized key(s) in object: 'include_geometry'"
+    }]
+  }
+}
+```
+
+Move `include_geometry` to the top level. It applies to all fields. An invalid `Idempotency-Key` uses the path `["idempotency_key"]`; an invalid results page size uses `["limit"]`.
+
+### Non-bulk validation
+
+For example, omit `locked` when setting an application portal lock:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "details": {
+      "formErrors": [],
+      "fieldErrors": { "locked": ["Required"] }
+    }
+  }
+}
+```
+
+The application-time drift endpoint validates its body under `payload`, so its flattened field errors may be grouped under `payload`.
+
+## Conflict and rate-limit examples
+
+A changed request under a reused bulk idempotency key returns HTTP 409:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "IDEMPOTENCY_CONFLICT",
+    "message": "Idempotency-Key was used with different inputs"
+  }
+}
+```
+
+When the bulk backlog is full, the response is HTTP 429 with JSON:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "BULK_BACKLOG_EXCEEDED",
+    "message": "Bulk processing backlog is full; retry later"
+  }
+}
+```
+
+An API-key or IP request limit instead returns a text body. The retry duration depends on the remaining limit window; `30` below is illustrative:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: text/html; charset=utf-8
+Retry-After: 30
+
+Too many requests, please try again later.
+```
+
+Check `Content-Type` before calling your client's JSON parser. V2 applies per-minute limits to each API key and a shared IP limit. Your quota depends on the service configuration. Polling requests count toward these limits.
+
+## Bulk item failures
+
+An accepted job processes fields independently. A results GET can return HTTP 200 and `success: true` even when an item failed. The example below is one selected item from `items[]`:
+
+```json
+{
+  "item_index": 1,
+  "application_id": "south-application-2026-10-05",
+  "provider_field_id": "south-field",
+  "status": "failed",
+  "attempts": 1,
+  "result": null,
+  "error": {
+    "code": "APPLICATION_FIELD_CONFLICT",
+    "message": "Application belongs to a different field",
+    "retryable": false
+  },
+  "started_at": "2026-10-05T14:00:00.000Z",
+  "completed_at": "2026-10-05T14:00:01.000Z"
+}
+```
+
+Failed items can contain the field/application codes above, portal-signing errors, deadline/cancellation errors, `PROCESSING_FAILED`, or `ATTEMPTS_EXHAUSTED`. `PROCESSING_FAILED` uses message `Field processing failed` for unexpected processing failures; its `retryable` value depends on the cause.
+
+The worker retries transient failures up to three total attempts. `PROCESSING_CONFLICT`, `FIELD_CHANGED`, `APPLICATION_CHANGED`, `DEADLINE_EXCEEDED`, and `REQUEST_CANCELLED` are retryable. For example, exhausted retries can produce:
+
+```json
+{
+  "code": "PROCESSING_FAILED",
+  "message": "Field processing failed",
+  "retryable": true
+}
+```
+
+`retryable: true` describes the cause; it does not promise another automatic attempt after the item becomes `failed`. Wait for a terminal job, inspect failed items, then submit only the fields you need to retry with a new idempotency key. Replaying the original key returns the original job, including its failures.
+
+Repeated processing interruptions can exhaust attempts during recovery. The failed item's error then contains:
+
+```json
+{
+  "code": "ATTEMPTS_EXHAUSTED",
+  "message": "Processing interrupted repeatedly",
+  "retryable": true
+}
+```
+
+Queued items awaiting a retry can retain an `error` from an earlier attempt; starting the next attempt clears it. Use `status` to decide whether the item is final. Successful processing still requires inspecting the assessment's compliance status.
+
+## Assessment issue codes
+
+These codes appear in successful response issue lists, such as `compliance.issues`, drift assessment issues, or runoff-baseline `issues`. They are not HTTP error codes. A bulk item can be `succeeded` while its assessment is `indeterminate` or `not_met`.
+
+| Code | Example condition and next action |
+|---|---|
+| `UNKNOWN_PRODUCT` | Product lookup failed; verify the product name/EPA number and request a fresh assessment. |
+| `ESA_STATUS_UNKNOWN` | A known product lacks a verified ESA status; review its label and resolve the missing evidence. |
+| `RUNOFF_TYPE_UNRESOLVED` | Runoff is required but its mitigation type is unavailable; request support/review. |
+| `SOIL_UNAVAILABLE` | Soil-dependent processing is incomplete; allow enrichment and resubmit for a new assessment. |
+| `SOIL_QUEUE_FAILED` | Soil enrichment could not be queued; resubmit to retry. |
+| `UNRESOLVED_RATE` | The rate unit cannot be interpreted; correct the unit. Conservative buffers may apply. |
+| `LIMITATIONS_REVIEW_REQUIRED` | PULA text includes conditions requiring manual review; read the returned limitations. |
+| `DRIFT_CONDITIONS_UNVERIFIED` | Application weather or buffer placement remains unverified; review actual conditions. |
+| `UNSUPPORTED_MITIGATION` | A required mitigation type needs separate review. |
+| `RUNOFF_APPLICABILITY_UNVERIFIED` | Confirm EPA runoff applicability or any exemption in the portal. |
+| `RUNOFF_REQUIREMENT_UNRESOLVED` | Required runoff points could not be established; resolve the missing requirement. |
+| `LABEL_DROPLET_MINIMUM_UNRESOLVED` | The label's minimum droplet size could not be established; review the label. |
+| `DROPLET_BELOW_LABEL_MINIMUM` | Supplied droplets are smaller than the label minimum; correct the application setup. |
+| `DROPLET_SIZE_MISSING` | Supply the actual droplet size to verify drift mitigation eligibility. |
+| `DRIFT_METHOD_UNRESOLVED` | No buffer rule matches the application method; review product/method compatibility. |
+| `DROPLET_BELOW_BUFFER_TIER` | Droplet size does not meet the selected buffer tier; review the required setup. |
+| `WIND_SPEED_UNRESOLVED` | Application wind speed cannot be matched to a supported buffer tier; review actual weather. |
+| `MANUAL_DRIFT_PRACTICE_UNVERIFIED` | Manually selected drift practices still require verification. |
+| `MANUAL_DRIFT_OPTION_DISALLOWED` | A selected drift option does not apply to the current requirement; revise the selection. |
+| `DRIFT_REQUIREMENT_UNRESOLVED` | A current drift requirement could not be resolved; complete review before relying on the assessment. |
+
+For example, these selected fields can appear in an HTTP 200 response:
+
+```json
+{
+  "success": true,
+  "compliance": {
+    "version": 1,
+    "status": "indeterminate",
+    "processing_complete": false,
+    "issues": [{
+      "code": "SOIL_UNAVAILABLE",
+      "message": "Required soil data is unavailable; retry the application after soil enrichment"
+    }]
+  }
+}
+```
+
+`compliance.version` versions the assessment structure, not the API route. Reuse existing soil/product caches. Background enrichment does not rewrite a completed result; resubmit the application to obtain an updated assessment.
+
+## Retry safely
+
+1. Correct 400/401/403/404/413/422 problems before retrying. Resolve identity and idempotency conflicts instead of blindly retrying every 409.
+2. For transient 409/429/502/503 failures, use exponential backoff with jitter. Honor `Retry-After` when present. A retry header does not make an identity conflict transient.
+3. After a bulk submission timeout, retry the same effective input with the same `Idempotency-Key`. The first attempt may already have created the job.
+4. After acceptance, poll that job. Fetch every results page and inspect each item's status. Do not cache bulk status or results; successful responses use `Cache-Control: no-store`.
+5. After a terminal job, retry failed fields separately with a new key. For single checks, reuse the same provider/account/application identifiers and read the refreshed assessment.
+
+Most error-handler responses with 409, 429, or 503 include `Retry-After: 5`. A deadline response sent directly by the route can omit it. A missing response or timeout does not establish whether the operation saved changes.

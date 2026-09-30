@@ -1,0 +1,63 @@
+---
+title: "Get bulk job status"
+description: "Read processing progress and terminal counts"
+api: "GET https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/{job_id}"
+---
+
+Read processing progress and terminal counts.
+
+<ParamField path="job_id" type="string" required>
+  Opaque job identifier from the accepted response.
+</ParamField>
+
+
+## Job lifecycle
+
+`status` is `queued`, `processing`, `completed`, `completed_with_errors`, or `failed`. The last three are terminal. `completed` means every item succeeded, `completed_with_errors` means some items succeeded and some failed, and `failed` means no item succeeded.
+
+`counts` reports queued, processing, succeeded, and failed items. `started_at`, `completed_at`, and `expires_at` can be null while work is pending. Results expire 30 days after terminal completion.
+
+Poll with backoff (for example, every five seconds). Responses use `Cache-Control: no-store`. A different provider or expired/unknown job receives `404 BULK_JOB_NOT_FOUND`.
+
+<RequestExample>
+
+```bash cURL
+curl --request GET 'https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY"
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "job_id": "019953f8-8c00-7000-8000-000000000001",
+  "provider_id": "your-provider",
+  "account_id": "your-account",
+  "provider_group_id": "work-order-42",
+  "status": "queued",
+  "total_items": 2,
+  "counts": {
+    "queued": 2,
+    "processing": 0,
+    "succeeded": 0,
+    "failed": 0
+  },
+  "created_at": "2026-10-05T14:00:00.000Z",
+  "started_at": null,
+  "completed_at": null,
+  "expires_at": null,
+  "status_url": "/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001",
+  "results_url": "/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001/results"
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+A malformed job UUID returns `422 INVALID_REQUEST`. An unknown, expired, or other-provider job returns `404 BULK_JOB_NOT_FOUND`.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

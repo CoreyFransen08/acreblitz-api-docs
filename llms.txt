@@ -1,0 +1,44 @@
+# AcreBlitz API
+
+> ESA and PULA API documentation for V1 and V2.
+
+V1 uses https://esa.acreblitz.com/api/v1. V2 uses https://esa-v2.acreblitz.com/api/v2. Keep versions separate when answering or building requests. V1 is the website default; this index explicitly includes both versions. Fetch the linked Markdown pages directly; no API key or user copy/paste is needed to read the public documentation.
+
+## V1
+
+- [AcreBlitz ESA Check API](https://docs.acreblitz.com/index.md): ESA and PULA compliance API for agricultural platforms
+- [Quickstart](https://docs.acreblitz.com/quickstart.md): Make your first ESA check in minutes
+- [Authentication](https://docs.acreblitz.com/authentication.md): How to authenticate your AcreBlitz API requests
+- [API Reference](https://docs.acreblitz.com/api-reference/introduction.md): Overview of the AcreBlitz ESA Check API
+- [ESA Check](https://docs.acreblitz.com/api-reference/endpoint/esa-check.md): Check ESA/PULA restrictions for a pesticide application
+- [Process Field](https://docs.acreblitz.com/api-reference/endpoint/process-field.md): Process a field boundary and auto-apply runoff mitigation measures
+- [Enlist Report](https://docs.acreblitz.com/api-reference/endpoint/enlist-report.md): Download Enlist Mitigation PDF report for a field
+- [Runoff Report](https://docs.acreblitz.com/api-reference/endpoint/runoff-report.md): Download EPA Runoff Mitigation PDF report for a field
+
+## V2
+
+- [ESA API V2](https://docs.acreblitz.com/v2/index.md): Synchronous ESA assessments, bulk jobs, soil analysis, and portal controls
+- [Quickstart](https://docs.acreblitz.com/v2/quickstart.md): Make a V2 check and submit your first bulk job
+- [Authentication](https://docs.acreblitz.com/v2/authentication.md): Authenticate V2 requests with your provider API key
+- [Migrate from V1](https://docs.acreblitz.com/v2/migration.md): Adopt V2 while keeping your V1 integration available
+- [Errors and retries](https://docs.acreblitz.com/v2/errors.md): V2 error codes, validation examples, bulk item failures, assessment issues, and retry rules
+- [Read docs with an AI agent](https://docs.acreblitz.com/v2/ai-agents.md): Fetch documentation directly by URL, with indexes and complete Markdown for V1 and V2
+- [API overview](https://docs.acreblitz.com/v2/api-reference/introduction.md): All V2 endpoints and their processing behavior
+- [ESA check](https://docs.acreblitz.com/v2/api-reference/endpoint/esa-check.md): Assess ESA and PULA requirements for one pesticide application
+- [Submit bulk checks](https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-submit.md): Submit multiple applications with shared or per-field products and crops
+- [Get bulk job status](https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-status.md): Read processing progress and terminal counts
+- [Get bulk results](https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-results.md): Read paginated results in original submission order
+- [Analyze soil](https://docs.acreblitz.com/v2/api-reference/endpoint/soil-process.md): Analyze hydrologic soil groups and slope for a field boundary
+- [Runoff baseline](https://docs.acreblitz.com/v2/api-reference/endpoint/runoff-baseline.md): Calculate automatic runoff mitigation credits without saving a field
+- [Process a field](https://docs.acreblitz.com/v2/api-reference/endpoint/process-field.md): Save a field with soil analysis and automatic runoff credits
+- [Get runoff mitigation options](https://docs.acreblitz.com/v2/api-reference/endpoint/mitigations.md): Read the active EPA runoff mitigation option tree
+- [Enlist compliance report](https://docs.acreblitz.com/v2/api-reference/endpoint/enlist-report.md): Download the Enlist compliance report for a provider-owned field
+- [Runoff compliance report](https://docs.acreblitz.com/v2/api-reference/endpoint/runoff-report.md): Download the Runoff compliance report for a provider-owned field
+- [Issue portal access](https://docs.acreblitz.com/v2/api-reference/endpoint/portal-access.md): Issue an expiring portal link for one application
+- [Set application portal lock](https://docs.acreblitz.com/v2/api-reference/endpoint/portal-lock.md): Lock or unlock portal mitigation changes for one application
+- [Set group portal lock](https://docs.acreblitz.com/v2/api-reference/endpoint/group-portal-lock.md): Lock or unlock all current applications in an account-scoped group
+- [Compute application-time drift buffers](https://docs.acreblitz.com/v2/api-reference/endpoint/drift-buffer.md): Refresh an application assessment with current wind and application setup
+
+## Complete content
+
+- [All V1 and V2 documentation](https://docs.acreblitz.com/llms-full.txt): Full page text, parameters, and request/response examples. Large file; prefer individual pages for focused questions.

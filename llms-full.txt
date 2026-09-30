@@ -1,0 +1,3483 @@
+# AcreBlitz API
+
+> ESA and PULA API documentation for V1 and V2.
+
+V1 uses https://esa.acreblitz.com/api/v1. V2 uses https://esa-v2.acreblitz.com/api/v2. Keep versions separate when answering or building requests. V1 is the website default; this index explicitly includes both versions. Fetch the linked Markdown pages directly; no API key or user copy/paste is needed to read the public documentation.
+
+# V1: AcreBlitz ESA Check API
+
+Source: https://docs.acreblitz.com/index.md
+
+> ESA and PULA compliance API for agricultural platforms
+
+The AcreBlitz ESA Check API provides **Endangered Species Act (ESA) compliance checking** for pesticide applications. With a single API call, determine if a field has active Pesticide Use Limitation Areas (PULAs), retrieve detailed limitation data, and receive a white-labeled portal URL where your customers can select mitigations and generate compliance reports.
+
+- [Quickstart](https://docs.acreblitz.com/quickstart): Get up and running with your first ESA check in minutes
+
+- [Authentication](https://docs.acreblitz.com/authentication): Learn how to authenticate your API requests
+
+- [ESA Check Endpoint](https://docs.acreblitz.com/api-reference/endpoint/esa-check): Full reference for the ESA Check API endpoint
+
+- [Report Endpoints](https://docs.acreblitz.com/api-reference/endpoint/enlist-report): Download compliance reports programmatically
+
+## How It Works
+
+<Steps>
+  <Step title="Send Application Data">
+    Your platform sends field boundary, products, and application details to the ESA Check API with a single POST request.
+  </Step>
+  <Step title="Receive Results & Portal URL">
+    The API returns PULA limitations, product status, and a secure portal URL valid for 1 year. Results include everything needed for compliance.
+  </Step>
+  <Step title="Direct Users to Portal">
+    Display the portal link in your UI, send via email, or both. Users access the white-labeled portal to view details and select mitigations.
+  </Step>
+  <Step title="Users Complete Mitigations">
+    Your users select mitigation practices (we automatically pre-select available mitigations), view soil and weather data, and download branded compliance reports.
+  </Step>
+</Steps>
+
+## Key Features
+
+- [Universal ESA Detection](): Send all applications to the API. You only pay when a product in the tank mix has ESA language on the label. Every qualifying check returns complete limitation data and a portal URL.
+
+- [Single API Call](): One simple POST request returns everything you need: Bulletins Live! Two limitations, product status, mitigation requirements, and a white-labeled portal URL for your customer.
+
+- [White-Labeled Portal](): Your users access a fully branded portal with your company logo. They select mitigations, view soil/weather data, and generate compliance reports — all under your brand.
+
+- [Automated Compliance Reports](): Compliance reports are automatically generated with your branding when your users complete mitigation selection. No additional development required.
+
+## Portal Experience
+
+Your customers access a fully branded compliance portal powered by AcreBlitz.
+
+<Frame>
+  <img src="/images/portal-landing.png" alt="White-labeled portal landing page" />
+</Frame>
+
+  <Frame caption="Interactive mitigation selection">
+    <img src="/images/mitigation-selection.png" alt="Mitigation selection interface" />
+  </Frame>
+  <Frame caption="Branded compliance reports">
+    <img src="/images/compliance-report.png" alt="Compliance report PDF" />
+  </Frame>
+
+## Who It's For
+
+- [Ag Tech Platforms](): Add ESA compliance checking to your precision ag software. Integrate PULA verification directly into application planning workflows.
+
+- [Farm Management Software](): Give growers instant compliance verification for their fields. Enable proactive planning and regulatory adherence.
+
+- [Applicator Software](): Integrate ESA compliance into commercial applicator workflows. Verify PULA restrictions for customer fields before job execution.
+
+- [Mobile Applications](): Enable field-level PULA checking from mobile devices. Verify compliance on-the-go before application begins.
+
+---
+
+# V1: Quickstart
+
+Source: https://docs.acreblitz.com/quickstart.md
+
+> Make your first ESA check in minutes
+
+## Prerequisites
+
+Before you begin, you'll need:
+
+1. **An API key** — Contact [support@acreblitz.com](mailto:support@acreblitz.com) or visit [acreblitz.com/contact](https://www.acreblitz.com/contact) to get one
+2. **A GeoJSON field boundary** — Polygon or MultiPolygon in EPSG:4326 (WGS84)
+3. **Product EPA numbers** — Registration numbers for products in the tank mix
+
+## Step 1: Set Your Auth Header
+
+All requests require the `X-API-Key` header:
+
+```bash
+# Required on all requests
+-H "X-API-Key: your_api_key_here"
+```
+
+## Step 2: Make Your First ESA Check
+
+Send a POST request to the `/api/v1/esa-check` endpoint with your application data.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://esa.acreblitz.com/api/v1/esa-check \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key_here" \
+  -d '{
+    "account_id": "acct-98765",
+    "provider_id": "your_provider_id",
+    "field_name": "South Field 25",
+    "application_id": "job-2024-06-15-002",
+    "provider_field_id": "field-south-25",
+    "application_method": "ground",
+    "application_date": "2024-06-15",
+    "field_boundary": {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-95.284265, 42.263233],
+          [-95.284470, 42.254180],
+          [-95.267536, 42.254063],
+          [-95.267341, 42.263116],
+          [-95.284265, 42.263233]
+        ]]
+      }
+    },
+    "products": [
+      {
+        "epa_number": "62719-442",
+        "product_name": "INTREPID 2F",
+        "rate": 16.0,
+        "rate_unit": "fl oz/acre"
+      }
+    ],
+    "crop": ["corn"],
+    "pest": ["corn borer"],
+    "gpa": 10
+  }'
+```
+
+```typescript TypeScript
+const response = await fetch(
+  'https://esa.acreblitz.com/api/v1/esa-check',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': process.env.ACREBLITZ_API_KEY!,
+    },
+    body: JSON.stringify({
+      account_id: 'acct-98765',
+      provider_id: 'your_provider_id',
+      field_name: 'South Field 25',
+      application_id: 'job-2024-06-15-002',
+      provider_field_id: 'field-south-25',
+      application_method: 'ground',
+      application_date: '2024-06-15',
+      field_boundary: {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [-95.284265, 42.263233],
+            [-95.284470, 42.254180],
+            [-95.267536, 42.254063],
+            [-95.267341, 42.263116],
+            [-95.284265, 42.263233],
+          ]],
+        },
+      },
+      products: [
+        {
+          epa_number: '62719-442',
+          product_name: 'INTREPID 2F',
+          rate: 16.0,
+          rate_unit: 'fl oz/acre',
+        },
+      ],
+      crop: ['corn'],
+      pest: ['corn borer'],
+      gpa: 10,
+    }),
+  }
+);
+
+const result = await response.json();
+```
+
+```python Python
+
+response = requests.post(
+    "https://esa.acreblitz.com/api/v1/esa-check",
+    headers={
+        "Content-Type": "application/json",
+        "X-API-Key": "your_api_key_here",
+    },
+    json={
+        "account_id": "acct-98765",
+        "provider_id": "your_provider_id",
+        "field_name": "South Field 25",
+        "application_id": "job-2024-06-15-002",
+        "provider_field_id": "field-south-25",
+        "application_method": "ground",
+        "application_date": "2024-06-15",
+        "field_boundary": {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [-95.284265, 42.263233],
+                    [-95.284470, 42.254180],
+                    [-95.267536, 42.254063],
+                    [-95.267341, 42.263116],
+                    [-95.284265, 42.263233],
+                ]],
+            },
+        },
+        "products": [
+            {
+                "epa_number": "62719-442",
+                "product_name": "INTREPID 2F",
+                "rate": 16.0,
+                "rate_unit": "fl oz/acre",
+            }
+        ],
+        "crop": ["corn"],
+        "pest": ["corn borer"],
+        "gpa": 10,
+    },
+)
+
+result = response.json()
+```
+
+</CodeGroup>
+
+## Step 3: Handle the Response
+
+The response tells you whether ESA compliance is required and provides a portal URL if it is.
+
+The first thing to check is the `esa_required` field. If **none** of the products in the tank mix have ESA obligations, the API returns early with `esa_required: false` — no field record is created, no PULA analysis is performed, and no portal URL is generated.
+
+```json Example Response — No ESA Required
+{
+  "success": true,
+  "esa_required": false,
+  "account_id": "acct-98765",
+  "provider_id": "your_provider_id",
+  "products": [
+    {
+      "epa_number": "62719-442",
+      "product_name": "INTREPID 2F",
+      "product_status": "Active",
+      "esa_required": false,
+      "pulas": []
+    }
+  ],
+  "summary": {
+    "total_pulas": 0,
+    "total_limitations": 0,
+    "products_checked": 1,
+    "products_with_limitations": 0
+  }
+}
+```
+
+When `esa_required` is `true`, the full PULA analysis is performed and the response includes an `application_event_id` and a `mitigation_portal_url`.
+
+```json Example Response — ESA Required
+{
+  "success": true,
+  "esa_required": true,
+  "account_id": "acct-98765",
+  "provider_id": "your_provider_id",
+  "application_event_id": "a1b2c3d4-e5f6-7890-abcd-ef0123456789",
+  "mitigations_required": true,
+  "mitigation_portal_url": "https://acreblitz.com/esaportal/field?t=a2a73941e3872bdcd6aae3206060f19db3892aec67bfbef27a2d015b1bf98bc7",
+  "expires_at": "2026-06-22T23:59:59Z",
+  "user_email": null,
+  "products": [
+    {
+      "epa_number": "62719-442",
+      "product_name": "INTREPID 2F",
+      "product_status": "Active",
+      "esa_required": true,
+      "pulas": [
+        {
+          "pula_id": 95,
+          "event_name": "NMFS BiOps 2024",
+          "status": "effective",
+          "effective_date": "2024-04-30",
+          "codes": "RPMDZ",
+          "limitations": [
+            {
+              "limitation_id": 201,
+              "code": "RPMDZ",
+              "limitation": "Do not apply when soil is saturated...",
+              "mitigation_options": ["epa_runoff"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_pulas": 1,
+    "total_limitations": 1,
+    "products_checked": 1,
+    "products_with_limitations": 1
+  }
+}
+```
+
+## Step 4: Direct Users to the Portal
+
+When `mitigations_required` is `true`, direct your user to the `mitigation_portal_url`. You can:
+
+- **Embed the link** in your application UI
+- **Send it via email** to the applicator or grower
+- **Open it in a new tab** from your platform
+
+The portal URL is valid for 1 year and provides a fully branded experience where your user can:
+- View detailed PULA information and field maps
+- Select required mitigation practices
+- Review soil and weather data
+- Download branded compliance reports
+
+## Step 5: Download Reports (Optional)
+
+After an ESA check, you can programmatically download compliance reports:
+
+```bash Download Enlist Report
+curl -X GET "https://esa.acreblitz.com/api/v1/fields/field-south-25/reports/enlist" \
+  -H "X-API-Key: your_api_key_here" \
+  -o enlist-report.pdf
+```
+
+```bash Download Runoff Report
+curl -X GET "https://esa.acreblitz.com/api/v1/fields/field-south-25/reports/runoff" \
+  -H "X-API-Key: your_api_key_here" \
+  -o runoff-report.pdf
+```
+
+  The `provider_field_id` in the report URL is the `provider_field_id` you submitted to `/esa-check`. If you didn't provide one, it defaults to the `application_id`.
+
+## Next Steps
+
+- [ESA Check Reference](https://docs.acreblitz.com/api-reference/endpoint/esa-check): Full endpoint reference with all parameters and response fields
+
+- [Report Endpoints](https://docs.acreblitz.com/api-reference/endpoint/enlist-report): Programmatic report download reference
+
+---
+
+# V1: Authentication
+
+Source: https://docs.acreblitz.com/authentication.md
+
+> How to authenticate your AcreBlitz API requests
+
+All API requests require a valid API key passed in the `X-API-Key` header.
+
+## API Key Header
+
+Include your API key in every request:
+
+```
+X-API-Key: your_api_key_here
+```
+
+```bash
+# Required on all requests
+-H "X-API-Key: your_api_key_here"
+```
+
+## Example Request
+
+```bash cURL
+curl -X POST https://esa.acreblitz.com/api/v1/esa-check \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key_here" \
+  -d '{ ... }'
+```
+
+## Error Responses
+
+If the API key is missing or invalid, you will receive a `401 Unauthorized` response:
+
+```json
+{
+  "detail": "Invalid or missing API key"
+}
+```
+
+## Security Best Practices
+
+  Never expose your API key in client-side code (browser JavaScript, mobile app bundles). Always make API calls from your backend server.
+
+- **Store securely**: Use environment variables or a secrets manager. Never hardcode keys in source code.
+- **Server-side only**: Make all AcreBlitz API calls from your backend. Never include the key in frontend code shipped to browsers or mobile devices.
+- **Rotate if compromised**: If you suspect your key has been exposed, contact [support@acreblitz.com](mailto:support@acreblitz.com) to rotate it immediately.
+- **Limit access**: Only share API keys with team members who need them. Use separate keys for development and production if available.
+
+## Getting an API Key
+
+To request an API key, contact us at [support@acreblitz.com](mailto:support@acreblitz.com) or visit [acreblitz.com/contact](https://www.acreblitz.com/contact).
+
+---
+
+# V1: API Reference
+
+Source: https://docs.acreblitz.com/api-reference/introduction.md
+
+> Overview of the AcreBlitz ESA Check API
+
+## Base URL
+
+```
+https://esa.acreblitz.com
+```
+
+All endpoints are prefixed with `/api/v1`.
+
+## Authentication
+
+All endpoints require a valid API key in the `X-API-Key` header. See [Authentication](https://docs.acreblitz.com/authentication) for details.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/esa-check` | Check ESA/PULA restrictions for a pesticide application |
+| `GET` | `/api/v1/fields/{provider_field_id}/reports/enlist` | Download Enlist Mitigation PDF report |
+| `GET` | `/api/v1/fields/{provider_field_id}/reports/runoff` | Download EPA Runoff Mitigation PDF report |
+
+## Status Codes
+
+| Code | Meaning | Description |
+|------|---------|-------------|
+| `200` | Success | Request completed successfully |
+| `400` | Bad Request | Invalid parameters or malformed request body |
+| `401` | Unauthorized | Invalid or missing API key |
+| `404` | Not Found | Field or report not found |
+| `500` | Internal Server Error | Server error — contact support if it persists |
+| `502` | Bad Gateway | Upstream report generation failed |
+| `504` | Gateway Timeout | Report generation timed out |
+
+## Idempotency
+
+The ESA Check endpoint is **idempotent** based on the `application_id` field. Submitting the same `application_id` with updated data will refresh the results for that application rather than creating a duplicate. This makes it safe to retry requests or update application details.
+
+## Rate Limiting
+
+API requests are rate limited to ensure fair usage. If you exceed the limit, you will receive a `429 Too Many Requests` response. Contact support if you need a higher rate limit for your integration.
+
+---
+
+# V1: ESA Check
+
+Source: https://docs.acreblitz.com/api-reference/endpoint/esa-check.md
+
+> Check ESA/PULA restrictions for a pesticide application
+
+Endpoint: `POST /api/v1/esa-check`
+
+Check if a field has active Pesticide Use Limitation Areas (PULAs) for the products in your tank mix. Returns detailed limitation data and a white-labeled portal URL for mitigation selection.
+
+```bash cURL
+curl -X POST https://esa.acreblitz.com/api/v1/esa-check \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $ACREBLITZ_API_KEY" \
+  -d '{
+    "account_id": "acct-98765",
+    "provider_id": "your_provider_id",
+    "field_name": "South Field 25",
+    "application_id": "job-2024-06-15-002",
+    "provider_field_id": "field-south-25",
+    "application_method": "ground",
+    "application_date": "2024-06-15",
+    "field_boundary": {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-95.284265, 42.263233],
+          [-95.284470, 42.254180],
+          [-95.267536, 42.254063],
+          [-95.267341, 42.263116],
+          [-95.284265, 42.263233]
+        ]]
+      }
+    },
+    "products": [
+      {
+        "epa_number": "62719-442",
+        "product_name": "INTREPID 2F",
+        "rate": 16.0,
+        "rate_unit": "fl oz/acre"
+      }
+    ],
+    "crop": ["corn"],
+    "pest": ["corn borer"],
+    "gpa": 10
+  }'
+```
+
+## Request Body
+
+### Required Fields
+
+### account_id
+
+body parameter; string; required.
+
+Your customer account identifier. Controls portal access and is displayed in reports.
+
+### provider_id
+
+body parameter; string; required.
+
+Your internal provider identifier, assigned by AcreBlitz.
+
+### field_name
+
+body parameter; string; required.
+
+Name of the field. Displayed in the portal and on compliance reports.
+
+### application_id
+
+body parameter; string; required.
+
+Unique identifier for the application job in your system. Used for **idempotency** — resubmit with the same `application_id` to update results rather than create duplicates.
+
+### application_method
+
+body parameter; string; required.
+
+Method of application. Use your own terminology (e.g., `"Drone"`, `"Ground Boom"`, `"Airblast"`, `"Helicopter"`) — we automatically map to the correct regulatory categories (aerial, ground, airblast).
+
+### application_date
+
+body parameter; string; required.
+
+Application date in ISO 8601 format (`YYYY-MM-DD`). Used for temporal validation of PULA restrictions.
+
+### field_boundary
+
+body parameter; object; required.
+
+GeoJSON Feature with Polygon or MultiPolygon geometry in EPSG:4326 (WGS84).
+
+  ```json Example
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [-95.284265, 42.263233],
+        [-95.284470, 42.254180],
+        [-95.267536, 42.254063],
+        [-95.267341, 42.263116],
+        [-95.284265, 42.263233]
+      ]]
+    }
+  }
+  ```
+
+### products
+
+body parameter; array; required.
+
+Products to check. Each product object contains:
+
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | `epa_number` | string | No | EPA registration number (nullable for adjuvants) |
+  | `product_name` | string | Yes | Product name |
+  | `rate` | number | Yes | Application rate |
+  | `rate_unit` | string | Yes | Rate unit (e.g., `"fl oz/acre"`) |
+
+  ```json Example
+  [
+    {
+      "epa_number": "62719-442",
+      "product_name": "INTREPID 2F",
+      "rate": 16.0,
+      "rate_unit": "fl oz/acre"
+    }
+  ]
+  ```
+
+### crop
+
+body parameter; array; required.
+
+Crop names being treated (e.g., `["corn", "soybeans"]`).
+
+### pest
+
+body parameter; array; required.
+
+Target pest names (e.g., `["aphids", "corn borer"]`).
+
+### Optional Fields
+
+### provider_field_id
+
+body parameter; string; optional.
+
+Your internal field identifier. Used as the key for report download endpoints. If omitted, `application_id` is used as fallback.
+
+### user_email
+
+body parameter; string; optional.
+
+End user email address. Stored for your records.
+
+### gpa
+
+body parameter; number; optional.
+
+Gallons per acre. Used for mitigation calculations.
+
+### include_geometry
+
+body parameter; boolean; optional; default: false.
+
+Include buffered PULA geometries in the response. Useful for rendering PULA boundaries on a map.
+
+### buffer_distance_miles
+
+body parameter; number; optional; default: 1.0.
+
+Buffer distance around the field for PULA geometry inclusion (max 10 miles). Only applies when `include_geometry` is `true`.
+
+### droplet_size
+
+body parameter; string; optional.
+
+Droplet size category (e.g., `"medium"`, `"coarse"`, `"very_coarse"`).
+
+### boom_height
+
+body parameter; string; optional.
+
+Boom height for ground applications (`"low"` or `"high"`).
+
+### Reserved Fields (Coming Soon)
+
+### include_soil_analysis
+
+body parameter; boolean; optional; default: false.
+
+Include soil analysis data in the response. **Not yet implemented** — currently ignored.
+
+### include_mitigations
+
+body parameter; boolean; optional; default: false.
+
+Include mitigation options in the response. **Not yet implemented** — currently ignored.
+
+## Response
+
+<ResponseField name="success" type="boolean" required>
+  Whether the ESA check completed successfully.
+</ResponseField>
+
+<ResponseField name="esa_required" type="boolean" required>
+  Whether any product in the request has ESA label language. If `false`, no further action is needed.
+</ResponseField>
+
+<ResponseField name="account_id" type="string" required>
+  The account ID from your request.
+</ResponseField>
+
+<ResponseField name="provider_id" type="string" required>
+  The provider ID from your request.
+</ResponseField>
+
+<ResponseField name="application_event_id" type="string">
+  Internal AcreBlitz application event UUID. Only present when `esa_required` is `true`.
+</ResponseField>
+
+<ResponseField name="mitigations_required" type="boolean">
+  Whether the user must select mitigation practices. Only present when `esa_required` is `true`.
+</ResponseField>
+
+<ResponseField name="mitigation_portal_url" type="string">
+  Secure URL to the white-labeled mitigation portal. Valid for 1 year. Only present when `esa_required` is `true`.
+</ResponseField>
+
+<ResponseField name="expires_at" type="string">
+  ISO 8601 timestamp for when the portal link expires. Only present when `esa_required` is `true`.
+</ResponseField>
+
+<ResponseField name="user_email" type="string">
+  The user email from your request, if provided.
+</ResponseField>
+
+<ResponseField name="products" type="array" required>
+  Array of product results. Each product contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `epa_number` | string | EPA registration number |
+  | `product_name` | string | Product name |
+  | `product_status` | string \| null | Registration status (`"Active"`, `"Inactive"`, or `null` if not found) |
+  | `esa_required` | boolean \| null | Whether this specific product has ESA label language |
+  | `pulas` | array | PULAs affecting this product (empty if no ESA restrictions) |
+
+  Each PULA in the `pulas` array contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `pula_id` | integer | PULA identifier |
+  | `event_name` | string | Regulatory event name (e.g., `"NMFS BiOps 2024"`) |
+  | `status` | string | PULA status (e.g., `"effective"`) |
+  | `effective_date` | string | Date the PULA became effective |
+  | `codes` | string | Limitation codes |
+  | `geometry` | object \| null | GeoJSON geometry (only if `include_geometry=true`) |
+  | `limitations` | array | Specific limitations for this PULA |
+
+  Each limitation contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `limitation_id` | integer | Limitation identifier |
+  | `code` | string | Limitation code (e.g., `"RPMDZ"`) |
+  | `limitation` | string | Full limitation text |
+  | `mitigation_options` | array | Required mitigation types (e.g., `["epa_runoff"]`) |
+</ResponseField>
+
+<ResponseField name="summary" type="object" required>
+  Summary statistics for the check.
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `total_pulas` | integer | Total PULAs found affecting the field |
+  | `total_limitations` | integer | Total limitations across all PULAs |
+  | `products_checked` | integer | Number of products checked |
+  | `products_with_limitations` | integer | Number of products with active limitations |
+</ResponseField>
+
+## Examples
+
+<Accordion title="ESA Required — Full Response">
+
+When one or more products have ESA label language and the field intersects active PULAs:
+
+```json
+{
+  "success": true,
+  "esa_required": true,
+  "account_id": "acct-98765",
+  "provider_id": "your_provider_id",
+  "application_event_id": "a1b2c3d4-e5f6-7890-abcd-ef0123456789",
+  "mitigations_required": true,
+  "mitigation_portal_url": "https://acreblitz.com/esaportal/field?t=a2a73941e3872bdcd6aae3206060f19db3892aec67bfbef27a2d015b1bf98bc7",
+  "expires_at": "2026-06-22T23:59:59Z",
+  "user_email": null,
+  "products": [
+    {
+      "epa_number": "62719-442",
+      "product_name": "INTREPID 2F",
+      "product_status": "Active",
+      "esa_required": true,
+      "pulas": [
+        {
+          "pula_id": 95,
+          "event_name": "NMFS BiOps 2024",
+          "status": "effective",
+          "effective_date": "2024-04-30",
+          "codes": "RPMDZ",
+          "limitations": [
+            {
+              "limitation_id": 201,
+              "code": "RPMDZ",
+              "limitation": "Do not apply when soil is saturated...",
+              "mitigation_options": ["epa_runoff"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_pulas": 1,
+    "total_limitations": 1,
+    "products_checked": 1,
+    "products_with_limitations": 1
+  }
+}
+```
+
+</Accordion>
+
+<Accordion title="ESA Not Required — Early Exit">
+
+When no products in the tank mix have ESA label language, the API returns early without storing data or creating a portal link:
+
+```json
+{
+  "success": true,
+  "esa_required": false,
+  "account_id": "acct-98765",
+  "provider_id": "your_provider_id",
+  "application_event_id": null,
+  "mitigations_required": null,
+  "mitigation_portal_url": null,
+  "expires_at": null,
+  "user_email": null,
+  "products": [
+    {
+      "epa_number": "12345-678",
+      "product_name": "GENERIC HERBICIDE",
+      "product_status": "Active",
+      "esa_required": false,
+      "pulas": []
+    }
+  ],
+  "summary": {
+    "total_pulas": 0,
+    "total_limitations": 0,
+    "products_checked": 1,
+    "products_with_limitations": 0
+  }
+}
+```
+
+</Accordion>
+
+## Notes
+
+  **Idempotency**: The `application_id` field makes the endpoint idempotent. Resubmitting with the same `application_id` updates the existing record rather than creating a duplicate. Use this to refresh results when products or application details change.
+
+  **Provider Field ID Fallback**: If you don't provide `provider_field_id`, the `application_id` is used as the field identifier for report download endpoints.
+
+  **Flexible Application Methods**: You can use your own terminology for `application_method` (e.g., `"Drone"`, `"Helicopter"`, `"Ground Boom"`). The API automatically maps these to the correct regulatory categories.
+
+  **GeoJSON Format**: The `field_boundary` must be a GeoJSON Feature with a Polygon or MultiPolygon geometry in EPSG:4326 (WGS84). MultiPolygon is supported for fields with excluded areas or multiple sections.
+
+---
+
+# V1: Process Field
+
+Source: https://docs.acreblitz.com/api-reference/endpoint/process-field.md
+
+> Process a field boundary and auto-apply runoff mitigation measures
+
+Endpoint: `POST /api/v1/process-field`
+
+Submit a field boundary to run the full ESA runoff pipeline. The endpoint:
+
+1. Resolves or creates the field by `(provider_field_id, provider_id)`.
+2. Persists the boundary and runs county/state intersection.
+3. Detects intersecting PULAs.
+4. Retrieves USDA SSURGO soil data (dominant hydrologic group, average slope).
+5. Auto-applies field-level `epa_runoff` mitigation measures based on slope, county relief points, and soil hydrologic group.
+6. Optionally returns the full `epa_runoff` mitigation options tree with selection state for the field/year.
+
+This endpoint is idempotent on `(provider_field_id, provider_id)` — resubmitting the same field updates the existing record rather than creating a duplicate, and previously-applied mitigation measures are not re-inserted.
+
+## Request Body
+
+### Required Fields
+
+### provider_id
+
+body parameter; string; required.
+
+Your internal provider identifier, assigned by AcreBlitz.
+
+### provider_field_id
+
+body parameter; string; required.
+
+Your internal field identifier. The (provider_field_id, provider_id) pair uniquely identifies a field across calls.
+
+### account_id
+
+body parameter; string; required.
+
+Your customer account identifier. Stored on the field record for downstream reporting.
+
+### field_name
+
+body parameter; string; required.
+
+Name of the field. Stored on the field record and displayed in compliance reports.
+
+### field_boundary
+
+body parameter; object; required.
+
+GeoJSON Feature with Polygon or MultiPolygon geometry in EPSG:4326 (WGS84).
+
+  ```json Example
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [-95.284265, 42.263233],
+        [-95.284470, 42.254180],
+        [-95.267536, 42.254063],
+        [-95.267341, 42.263116],
+        [-95.284265, 42.263233]
+      ]]
+    }
+  }
+  ```
+
+### Optional Fields
+
+### year
+
+body parameter; integer; optional.
+
+Year for the annual mitigation record. Defaults to the current calendar year.
+
+### include_mitigation_options
+
+body parameter; boolean; optional; default: false.
+
+When `true`, the response includes the full `epa_runoff` mitigation options tree (categories → options → sub-options) with a `selected` flag on each sub-option indicating whether it is currently applied to the field for the given year, plus a `total_points` tally.
+
+## Response
+
+<ResponseField name="success" type="boolean" required>
+  Whether the pipeline completed end-to-end.
+</ResponseField>
+
+<ResponseField name="provider_field_id" type="string" required>
+  Echo of the provider's field identifier from the request.
+</ResponseField>
+
+<ResponseField name="soil_data" type="object">
+  Soil analysis from USDA SSURGO. `null` if the soil step failed (the rest of the pipeline still runs).
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `dominant_hydgrpdcd` | string \| null | Dominant hydrologic soil group (`A`, `B`, `C`, `D`, or compound like `B/D`) |
+  | `weighted_avg_slopegradwta` | number \| null | Area-weighted average slope (percent) |
+  | `hydgrpdcd_analysis` | object | Per-HSG breakdown with `area_sqm` and `percentage` |
+  | `musym_analysis` | object | Per-map-unit breakdown with `muname`, `area_sqm`, and `percentage` |
+</ResponseField>
+
+<ResponseField name="counties" type="array">
+  Counties intersecting the field. Each entry contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `geo_id` | string | County GEOID (e.g. `"0500000US19153"`) |
+  | `state_fips` | string | State FIPS code |
+  | `county_fips` | string | County FIPS code |
+  | `county_name` | string | County name |
+  | `mitigation_points` | integer | EPA county-relief mitigation points (`0`, `2`, `3`, or `6`) |
+</ResponseField>
+
+<ResponseField name="pulas" type="array" required>
+  PULA IDs intersecting the field boundary.
+</ResponseField>
+
+<ResponseField name="mitigations_applied" type="array" required>
+  Sorted list of `epa_runoff` `sub_option_id`s currently applied to the field for the given year. Includes any auto-applied measures from this call as well as any pre-existing measures.
+</ResponseField>
+
+<ResponseField name="mitigation_options" type="array">
+  Full `epa_runoff` mitigation tree (only present when `include_mitigation_options=true`). An array of categories, each with nested options and sub-options.
+
+  Each **category** contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `id` | integer | Category ID |
+  | `code` | string | Category code |
+  | `label` | string | Display label |
+  | `description` | string \| null | Optional description |
+  | `max_select` | integer \| null | Maximum sub-options selectable in this category |
+  | `sort_order` | integer | Display order |
+  | `options` | array | Nested options |
+
+  Each **option** contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `id` | integer | Option ID |
+  | `code` | string | Option code |
+  | `label` | string | Display label |
+  | `description` | string \| null | Optional description |
+  | `has_sub_options` | boolean | Whether this option has selectable sub-options |
+  | `max_select` | integer \| null | Maximum sub-options selectable in this option |
+  | `helper_text` | string \| null | UX helper text |
+  | `helper_link` | string \| null | UX helper URL |
+  | `sub_options` | array | Nested sub-options |
+
+  Each **sub-option** contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `id` | integer | Sub-option ID (matches entries in `mitigations_applied`) |
+  | `code` | string \| null | Sub-option code |
+  | `label` | string | Display label |
+  | `points` | integer \| null | Mitigation points awarded if selected |
+  | `hydrologic_soil_group` | string \| null | HSG filter (`A_B`, `C_D`, or `null` for all) |
+  | `helper_text` | string \| null | UX helper text |
+  | `helper_link` | string \| null | UX helper URL |
+  | `selected` | boolean | Whether this sub-option is currently applied to the field for the given year |
+  | `implementation_date` | string \| null | Date the measure was applied (only when `selected=true`) |
+  | `notes` | string \| null | Notes recorded with the measure (only when `selected=true`) |
+</ResponseField>
+
+<ResponseField name="steps" type="object" required>
+  Per-step status for the pipeline. Keys: `county_state`, `pula_detection`, `soil_data`, `auto_mitigations`, and (when requested) `mitigation_options`. Each value contains:
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `success` | boolean | Whether this step succeeded |
+  | `error` | string \| null | Error message if the step failed |
+  | `data` | object \| null | Step-specific result payload |
+</ResponseField>
+
+<ResponseField name="summary" type="object" required>
+  Roll-up counters for the call.
+
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | `pula_count` | integer | Number of PULAs intersecting the field |
+  | `soil_available` | boolean | Whether soil data was retrieved successfully |
+  | `mitigations_applied_count` | integer | Number of currently-applied `epa_runoff` sub-options |
+  | `total_points` | integer | Sum of points across selected sub-options (only computed when `include_mitigation_options=true`) |
+</ResponseField>
+
+## Examples
+
+<Accordion title="Minimal Request">
+
+```bash cURL
+curl -X POST https://esa.acreblitz.com/api/v1/process-field \
+  -H "X-API-Key: $ACREBLITZ_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider_id": "your_provider_id",
+    "provider_field_id": "field-001",
+    "account_id": "acct-98765",
+    "field_name": "North 40",
+    "field_boundary": {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-95.284265, 42.263233],
+          [-95.284470, 42.254180],
+          [-95.267536, 42.254063],
+          [-95.267341, 42.263116],
+          [-95.284265, 42.263233]
+        ]]
+      }
+    }
+  }'
+```
+
+</Accordion>
+
+<Accordion title="Full Response (without mitigation_options)">
+
+```json
+{
+  "success": true,
+  "provider_field_id": "test_field_001",
+  "soil_data": {
+    "dominant_hydgrpdcd": "C",
+    "weighted_avg_slopegradwta": 9.1,
+    "hydgrpdcd_analysis": {
+      "C": { "area_sqm": 471285.35, "percentage": 50.83 },
+      "D": { "area_sqm": 249185.38, "percentage": 26.87 },
+      "B/D": { "area_sqm": 130124.66, "percentage": 14.03 }
+    },
+    "musym_analysis": {
+      "M162B": {
+        "muname": "Downs silt loam, till plain, 2 to 5 percent slopes",
+        "area_sqm": 231573.23,
+        "percentage": 24.97
+      }
+    }
+  },
+  "counties": [
+    {
+      "geo_id": "0500000US19153",
+      "state_fips": "19",
+      "county_fips": "153",
+      "county_name": "Polk",
+      "mitigation_points": 2
+    },
+    {
+      "geo_id": "0500000US19181",
+      "state_fips": "19",
+      "county_fips": "181",
+      "county_name": "Warren",
+      "mitigation_points": 0
+    }
+  ],
+  "pulas": [87],
+  "mitigations_applied": [12, 24],
+  "mitigation_options": null,
+  "steps": {
+    "county_state": { "success": true, "error": null, "data": {} },
+    "pula_detection": { "success": true, "error": null, "data": { "pula_count": 1 } },
+    "soil_data": { "success": true, "error": null, "data": { "dominant_hydgrpdcd": "C", "weighted_avg_slopegradwta": 9.1 } },
+    "auto_mitigations": { "success": true, "error": null, "data": { "mitigations_applied": [12, 24] } }
+  },
+  "summary": {
+    "pula_count": 1,
+    "soil_available": true,
+    "mitigations_applied_count": 2,
+    "total_points": 0
+  }
+}
+```
+
+</Accordion>
+
+<Accordion title="Mitigation Options Slice (`include_mitigation_options=true`)">
+
+The `mitigation_options` array contains the full `epa_runoff` tree (6 categories, ~30 options, ~50+ sub-options). Each sub-option carries a `selected` flag — `true` if its `id` appears in `mitigations_applied`. The slice below shows just the **County-based mitigation relief** option to illustrate the structure; your response will include all categories.
+
+```json
+{
+  "id": 2,
+  "code": "field_characteristics",
+  "label": "Field Characteristics",
+  "description": "Natural characteristics of the field that reduce runoff",
+  "max_select": null,
+  "sort_order": 2,
+  "options": [
+    {
+      "id": 13,
+      "code": "county_based_mitigation_relief",
+      "label": "County-based mitigation relief",
+      "description": "Pesticide runoff value based off of the runoff vulnerability map and County List",
+      "has_sub_options": true,
+      "max_select": 1,
+      "helper_text": "EPA analyzed the runoff vulnerability of counties...",
+      "helper_link": "https://www.epa.gov/pesticides/mitigation-menu-measure-descriptions#pesticide-runoff",
+      "sort_order": 1,
+      "sub_options": [
+        {
+          "id": 12,
+          "label": "Pesticide runoff vulnerability - high",
+          "points": 0,
+          "hydrologic_soil_group": null,
+          "selected": true,
+          "implementation_date": "2026-04-29",
+          "notes": "Using available county points from Warren - 0 points."
+        },
+        {
+          "id": 11,
+          "label": "Pesticide runoff vulnerability - low",
+          "points": 3,
+          "hydrologic_soil_group": null,
+          "selected": false,
+          "implementation_date": null,
+          "notes": null
+        }
+        // ... additional sub-options (id 9, 10) omitted
+      ]
+    }
+    // ... additional options in this category omitted
+  ]
+}
+// ... 5 more categories omitted (Application Parameters, In-Field Mitigation Measures,
+// Edge-of-Field Mitigation Measures, Adjacent-to-Field Mitigation Measures, Other)
+```
+
+When `total_points` in `summary` is computed (only when `include_mitigation_options=true`), it is the sum of `points` across every sub-option where `selected=true`.
+
+</Accordion>
+
+## Auto-Applied Mitigation Logic
+
+The `auto_mitigations` step inspects the field's soil, slope, and county data and inserts EPA-approved field-level credits into the annual runoff mitigation record:
+
+| Trigger | Sub-option ID | Description |
+|---------|---------------|-------------|
+| Always applied | 24 | Digital tracking credit |
+| Slope < 3% | 17 | Naturally low slope or flat fields |
+| County `mitigation_points = 0` | 12 | Pesticide runoff vulnerability — high |
+| County `mitigation_points = 2` | 10 | Pesticide runoff vulnerability — medium |
+| County `mitigation_points = 3` | 11 | Pesticide runoff vulnerability — low |
+| County `mitigation_points = 6` | 9 | Pesticide runoff vulnerability — very low |
+| Soil HSG = `A` | 27 | Predominantly sandy soils (HSG A) |
+| Soil HSG = `B` or `A/B` | 28 | Moderately sandy soils (HSG B) |
+
+When a county has multiple `mitigation_points` values, the **lowest** value is used. Existing measures are never duplicated — re-running the endpoint on the same field is safe.
+
+## Notes
+
+  **Idempotency**: The `(provider_field_id, provider_id)` pair makes the endpoint idempotent. Resubmitting the same field updates the existing record and replaces its boundary, but previously-applied mitigation measures are preserved.
+
+  **Fail-forward soil step**: If USDA SSURGO is unreachable, `soil_data` is `null` and the `soil_data` step is marked failed, but the rest of the pipeline still runs. Soil-dependent auto-credits (sub-options 17, 27, 28) are simply skipped in that case.
+
+  **Selection state**: Use `mitigations_applied` for a flat list of currently-applied sub-option IDs, or `include_mitigation_options=true` to see the full tree with each sub-option's `selected` flag. The selection set is the same in both views.
+
+  **GeoJSON Format**: The `field_boundary` must be a GeoJSON Feature with a Polygon or MultiPolygon geometry in EPSG:4326 (WGS84). MultiPolygon is supported for fields with excluded areas or multiple sections.
+
+---
+
+# V1: Enlist Report
+
+Source: https://docs.acreblitz.com/api-reference/endpoint/enlist-report.md
+
+> Download Enlist Mitigation PDF report for a field
+
+Endpoint: `GET /api/v1/fields/{provider_field_id}/reports/enlist`
+
+Download the Enlist Mitigation compliance report as a PDF for a specific field. The report includes limitation details, selected mitigations, and regulatory references.
+
+## Path Parameters
+
+### provider_field_id
+
+path parameter; string; required.
+
+The provider's field identifier. This is the `provider_field_id` you submitted to [`/esa-check`](https://docs.acreblitz.com/api-reference/endpoint/esa-check). If you didn't provide a `provider_field_id`, use the `application_id` instead.
+
+## Query Parameters
+
+### year
+
+query parameter; integer; optional.
+
+Report year. Defaults to the current year if not specified.
+
+## Response
+
+On success, returns the PDF file as an `application/pdf` stream with appropriate `Content-Disposition` headers for download.
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| `400` | Invalid report parameters |
+| `401` | Invalid or missing API key |
+| `404` | Field not found or report not available |
+| `502` | Upstream report generation failed |
+| `504` | Report generation timed out |
+
+## Example
+
+```bash cURL
+curl -X GET "https://esa.acreblitz.com/api/v1/fields/job-2024-06-15-002/reports/enlist" \
+  -H "X-API-Key: your_api_key_here" \
+  -o enlist-report.pdf
+```
+
+```bash cURL with year
+curl -X GET "https://esa.acreblitz.com/api/v1/fields/job-2024-06-15-002/reports/enlist?year=2025" \
+  -H "X-API-Key: your_api_key_here" \
+  -o enlist-report-2025.pdf
+```
+
+  The field must belong to your authenticated provider account and have completed an ESA check with a portal link before reports can be downloaded.
+
+---
+
+# V1: Runoff Report
+
+Source: https://docs.acreblitz.com/api-reference/endpoint/runoff-report.md
+
+> Download EPA Runoff Mitigation PDF report for a field
+
+Endpoint: `GET /api/v1/fields/{provider_field_id}/reports/runoff`
+
+Download the EPA Runoff Mitigation compliance report as a PDF for a specific field. The report includes runoff-specific limitation details, selected mitigations, soil data, and regulatory references.
+
+## Path Parameters
+
+### provider_field_id
+
+path parameter; string; required.
+
+The provider's field identifier. This is the `provider_field_id` you submitted to [`/esa-check`](https://docs.acreblitz.com/api-reference/endpoint/esa-check). If you didn't provide a `provider_field_id`, use the `application_id` instead.
+
+## Query Parameters
+
+### year
+
+query parameter; integer; optional.
+
+Report year. Defaults to the current year if not specified.
+
+## Response
+
+On success, returns the PDF file as an `application/pdf` stream with appropriate `Content-Disposition` headers for download.
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| `400` | Invalid report parameters |
+| `401` | Invalid or missing API key |
+| `404` | Field not found or report not available |
+| `502` | Upstream report generation failed |
+| `504` | Report generation timed out |
+
+## Example
+
+```bash cURL
+curl -X GET "https://esa.acreblitz.com/api/v1/fields/job-2024-06-15-002/reports/runoff" \
+  -H "X-API-Key: your_api_key_here" \
+  -o runoff-report.pdf
+```
+
+```bash cURL with year
+curl -X GET "https://esa.acreblitz.com/api/v1/fields/job-2024-06-15-002/reports/runoff?year=2025" \
+  -H "X-API-Key: your_api_key_here" \
+  -o runoff-report-2025.pdf
+```
+
+  The field must belong to your authenticated provider account and have completed an ESA check with a portal link before reports can be downloaded.
+
+---
+
+# V2: ESA API V2
+
+Source: https://docs.acreblitz.com/v2/index.md
+
+> Synchronous ESA assessments, bulk jobs, soil analysis, and portal controls
+
+Use V2 to check one pesticide application or submit a group of fields for asynchronous processing. You receive PULA requirements, runoff and drift assessments, and portal links for review.
+
+| Version | Base URL | Route prefix |
+|---|---|---|
+| V1 | `https://esa.acreblitz.com` | `/api/v1` |
+| V2 | `https://esa-v2.acreblitz.com` | `/api/v2` |
+
+Select **V1** or **V2** in the version dropdown. Existing V1 documentation and links remain available. V2 uses a separate hostname; confirm V2 access with AcreBlitz before switching a production integration.
+
+- [Quickstart](https://docs.acreblitz.com/v2/quickstart): Run a single check and inspect the assessment.
+
+- [Bulk checks](https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-submit): Submit up to 100 fields with shared products and crops.
+
+- [Migrate from V1](https://docs.acreblitz.com/v2/migration): Review the host, validation, and response changes.
+
+- [API reference](https://docs.acreblitz.com/v2/api-reference/introduction): Browse every V2 endpoint.
+
+## Interpret an assessment
+
+An HTTP 200 response or `success: true` means the request was handled. Read `compliance.status`, `compliance.processing_complete`, and `compliance.issues` before making a decision. A completed calculation can remain `indeterminate` when applicability, weather, or field conditions need review.
+
+| Status | Meaning |
+|---|---|
+| `met` | Evaluated requirements are met within the assessment's scope. |
+| `not_met` | A verified requirement has a shortfall. |
+| `not_applicable` | No applicable requirement was established for the verified inputs. |
+| `indeterminate` | Evidence, processing, or verification is incomplete. |
+
+An ESA assessment does not grant unrestricted application clearance. Review the product label, returned PULA text, and unresolved conditions.
+
+## Soil reuse and refreshed results
+
+V2 reuses soil when the field boundary and processing version match. A changed field boundary triggers fresh processing. Background soil enrichment does not rewrite a returned assessment; resubmit the same application to refresh it. Bulk polling responses use `Cache-Control: no-store`. Do not cache job status as a final assessment.
+
+---
+
+# V2: Quickstart
+
+Source: https://docs.acreblitz.com/v2/quickstart.md
+
+> Make a V2 check and submit your first bulk job
+
+## Send one application
+
+Set `ACREBLITZ_API_KEY` on your backend, replace the provider/account/field identifiers, and submit a valid field boundary. This example uses Liberty Ultra with `Broadcast-Ground`.
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/esa-check' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "provider_id": "your-provider",
+  "account_id": "your-account",
+  "provider_field_id": "north-field",
+  "provider_group_id": "work-order-42",
+  "field_name": "North field",
+  "application_id": "north-application-2026-10-05",
+  "application_method": "Broadcast-Ground",
+  "application_date": "2026-10-05",
+  "field_boundary": {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -95.404,
+            43.102
+          ],
+          [
+            -95.392,
+            43.102
+          ],
+          [
+            -95.392,
+            43.11
+          ],
+          [
+            -95.404,
+            43.11
+          ],
+          [
+            -95.404,
+            43.102
+          ]
+        ]
+      ]
+    }
+  },
+  "products": [
+    {
+      "epa_number": "7969-500",
+      "product_name": "Liberty Ultra",
+      "rate": 32,
+      "rate_unit": "fl oz/ac",
+      "rate_unit_state": "L"
+    }
+  ],
+  "crop": [
+    "Corn"
+  ],
+  "pest": [
+    "Waterhemp"
+  ],
+  "gpa": 15,
+  "droplet_size": "VC",
+  "boom_height": "low",
+  "include_soil_analysis": true,
+  "include_mitigations": true
+}'
+```
+
+## Inspect the result
+
+Read `compliance.status`, `processing_complete`, and `issues`. A successful request can have unresolved compliance. Keep the returned `application_event_id` as an opaque reference for application-time checks and portal controls. Open `mitigation_portal_url` when one is returned; use the entire URL unchanged.
+
+If `esa_required` is false, inspect the issues before treating the result as not applicable. Unknown products can produce an indeterminate assessment. The no-ESA early return does not create or update a saved field/application.
+
+## Check multiple fields
+
+Use [Submit bulk checks](https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-submit) to define common products, crops, pests, method, and date once. Each field can replace those settings independently. A bulk submission requires `provider_group_id` and returns **202 Accepted** with a `job_id`.
+
+Poll the returned `status_url`, then page through `results_url`. These URLs are relative to `https://esa-v2.acreblitz.com`. Preserve your `Idempotency-Key` when retrying the same submission.
+
+A succeeded bulk item means its check returned a result. Inspect that result's compliance, even when the overall job is `completed`.
+
+## Continue the workflow
+
+- [Download compliance reports](https://docs.acreblitz.com/v2/api-reference/endpoint/runoff-report) using your `provider_field_id`.
+- [Issue a portal link](https://docs.acreblitz.com/v2/api-reference/endpoint/portal-access) for one application.
+- [Lock portal changes](https://docs.acreblitz.com/v2/api-reference/endpoint/portal-lock) when your review is complete.
+- [Compute application-time drift buffers](https://docs.acreblitz.com/v2/api-reference/endpoint/drift-buffer) with current weather inputs.
+
+---
+
+# V2: Authentication
+
+Source: https://docs.acreblitz.com/v2/authentication.md
+
+> Authenticate V2 requests with your provider API key
+
+Send `X-API-Key` on every V2 endpoint. Keep the key in your backend environment or secret manager.
+
+```bash
+export ACREBLITZ_API_KEY='your_api_key_here'
+```
+
+```bash cURL
+curl 'https://esa-v2.acreblitz.com/api/v2/mitigations/epa_runoff' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY"
+```
+
+Your key establishes provider ownership. When the request includes `provider_id`, it must match that provider. Job, field, application, and group operations are limited to resources belonging to your provider.
+
+Active, unexpired keys can use all V2 endpoints; no separate bulk endpoint permission is required. A development key only works with its development environment. Contact [support](mailto:support@acreblitz.com) to obtain the appropriate key.
+
+See [error handling](https://docs.acreblitz.com/v2/errors) for 401, 403, 429, and retry behavior.
+
+---
+
+# V2: Migrate from V1
+
+Source: https://docs.acreblitz.com/v2/migration.md
+
+> Adopt V2 while keeping your V1 integration available
+
+V1 and V2 use different hosts and contracts. Switch each integration explicitly; V2 does not serve V1 route aliases.
+
+| Topic | V2 behavior |
+|---|---|
+| Host and paths | Use `https://esa-v2.acreblitz.com/api/v2/...`. |
+| Single check | Returns an assessment in the same HTTP response. |
+| Bulk checks | Submit 1–100 fields, then poll and fetch per-field results. |
+| Group identifier | Optional for a single check; required at the top level for bulk. |
+| Products and crops | Bulk defaults may be replaced per field; arrays are replaced, not merged. |
+| Pest inputs | Each product needs a product pest list or an inherited default. |
+| Method and droplet inputs | V2 validates supported categories; arbitrary strings are rejected. |
+| Optional details | `include_soil_analysis` and `include_mitigations` return assessment details when available. |
+| Errors | JSON `success: false` and `error.code`; validation errors also include issue paths. |
+| Portal links | Use returned links unchanged and honor their expiration. Providers can use token or signed-link access. |
+| Report lookup | Use your external `provider_field_id`. |
+
+## Roll out in order
+
+1. Confirm your V2 hostname and API key with AcreBlitz.
+2. Validate request construction against the [single check](https://docs.acreblitz.com/v2/api-reference/endpoint/esa-check) and [bulk](https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-submit) contracts.
+3. Handle `indeterminate` assessments and partial bulk failures before enabling intake.
+4. Move one provider/account workflow at a time. Avoid submitting the same field/application concurrently through both versions.
+5. Keep your V1 integration available while reviewing the V2 results and compliance reports.
+
+V1-only capabilities remain in V1. Do not infer that an endpoint exists in V2 simply by changing its URL prefix. The [V2 API reference](https://docs.acreblitz.com/v2/api-reference/introduction) lists supported routes.
+
+---
+
+# V2: Errors and retries
+
+Source: https://docs.acreblitz.com/v2/errors.md
+
+> V2 error codes, validation examples, bulk item failures, assessment issues, and retry rules
+
+Check the HTTP status and `Content-Type` before parsing a response. Most V2 failures use the JSON envelope below. Validation uses `error.details` instead of `error.message`. Request rate limiting returns plain text. A bulk results response can return HTTP 200 while individual fields have failed.
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PROVIDER_MISMATCH",
+    "message": "API key does not authorize this provider"
+  }
+}
+```
+
+Route handlers include `X-Request-ID`; keep it for support. Failures rejected earlier, such as malformed JSON, oversized bodies, or rate limits, may not include that header. An unknown URL uses the server's ordinary 404 response rather than the V2 JSON envelope.
+
+## HTTP error catalog
+
+These are the public codes emitted by the current V2 routes and their processing workflows. Each endpoint links here and lists its additional errors. Do not branch on message text; messages can vary while a code remains the same.
+
+### Authentication and request errors
+
+| HTTP | Code | Example trigger | What you should do |
+|---|---|---|---|
+| 401 | `UNAUTHORIZED` | Missing, invalid, inactive, expired, or oversized API key. | Supply a valid `X-API-Key`. |
+| 403 | `PROVIDER_MISMATCH` | Your key belongs to provider A but the body names provider B. | Use the provider assigned to the key. |
+| 422 | `INVALID_REQUEST` | Missing `provider_group_id`, duplicate bulk application IDs, invalid dates, or unsupported method/droplet size. | Correct `error.details`; do not retry unchanged. |
+| 400 | `REQUEST_FAILED` | Malformed JSON such as a trailing comma. | Fix the JSON syntax. |
+| 413 | `REQUEST_FAILED` | JSON body exceeds 5 MB. | Split the submission or reduce field boundary detail. |
+| 409 | `REQUEST_FAILED` | A concurrent write causes an identity conflict that lacks a more specific public code. | Check existing application/field identities before retrying. Contact support if repeated. |
+| 503 | `REQUEST_FAILED` | An unexpected dependency, connection, or processing failure. | Retry with backoff; contact support if repeated. |
+| 429 | No JSON code; plain text | API-key or shared-IP request limit reached. | Honor `Retry-After` and reduce request frequency, including polling. |
+
+### Bulk job errors
+
+| HTTP | Code | Example trigger | What you should do |
+|---|---|---|---|
+| 409 | `IDEMPOTENCY_CONFLICT` | Reuse a submission key after changing a field's rate or boundary. | Replay the original effective input, or use a new key for an intentionally new job. |
+| 429 | `BULK_BACKLOG_EXCEEDED` | The submitted fields would exceed the current pending-work limit. | Wait, then retry with the same key and input. |
+| 404 | `BULK_JOB_NOT_FOUND` | Job ID is absent, belongs to another provider, or has expired. | Check the key and job ID; retain results before their 30-day expiration. |
+
+A malformed job UUID returns `422 INVALID_REQUEST`, not `BULK_JOB_NOT_FOUND`. Bulk submission validates all fields before acceptance; a 422 creates no job.
+
+### Field and application errors
+
+These can occur during a single check, field processing, application-time drift calculation, or as a failed bulk item's `error`. Report lookup can also return `DUPLICATE_FIELD`.
+
+| HTTP when returned directly | Code | Example trigger | What you should do |
+|---|---|---|---|
+| 409 | `DUPLICATE_FIELD` | More than one stored field matches the supplied provider field identity. | Contact support to resolve the ambiguous identity. |
+| 409 | `FIELD_OWNERSHIP_CONFLICT` | The provider field identity already belongs to a different account. | Use the correct account or a distinct provider field identifier. |
+| 409 | `DUPLICATE_APPLICATION` | More than one existing application matches your application identity. | Contact support to resolve the ambiguity. |
+| 409 | `APPLICATION_FIELD_CONFLICT` | Reuse an application ID for a different field. | Keep the original field or use a new application ID. |
+| 409 | `PROCESSING_CONFLICT` | Another request is processing the same field or application. | Wait for that work to finish, then retry. |
+| 409 | `FIELD_CHANGED` | The field changed while its assessment was running. | Retry using the current field boundary. |
+| 409 | `APPLICATION_CHANGED` | The application changed while its assessment was running. | Refresh the application inputs, then retry. |
+| 404 | `APPLICATION_NOT_FOUND` | The application event is missing or outside your provider's scope. | Use the `application_event_id` returned for your provider. |
+| 422 | `UNSUPPORTED_APPLICATION_METHOD` | A processing workflow cannot resolve the saved application method. | Supply a supported method. New HTTP requests normally reject this earlier as `INVALID_REQUEST`. |
+| 422 | `NO_FIELD_GEOMETRY` | An application-time drift request references a field without an active boundary. | Recheck the application with a valid field boundary. |
+| 422 | `PRODUCT_MISMATCH` | A rate update's product index and EPA number do not identify the same saved product, or an index is repeated. | Match the saved product order and EPA number exactly. |
+| 422 | `INVALID_APPLICATION` | The saved application cannot be rechecked with the requested application-time changes. | Correct the application with a new ESA check before recalculating drift. |
+
+### Portal and report errors
+
+| HTTP | Code | Example trigger | What you should do |
+|---|---|---|---|
+| 404 | `FIELD_NOT_FOUND` | No provider-owned field with an active, unexpired portal matches the report request. | Check `provider_field_id` and portal availability. |
+| 404 | `GROUP_NOT_FOUND` | No applications match the group and account on a group-lock request. | Check both identifiers and wait for bulk items to finish creating applications. |
+| 403 | `INVALID_TOKEN` | Portal access is requested for an archived field. | Use an active field; contact support if archival is unexpected. |
+| 403 | `INACTIVE_TOKEN` | The field's portal is inactive. | Contact support to restore portal availability. |
+| 403 | `PORTAL_EXPIRED` | The field's portal access period has expired. | Arrange renewed portal availability; a new signed link alone cannot extend it. |
+| 400, 403, 404, 422, or 502 | `PORTAL_REQUEST_FAILED` | The report service rejects or fails the request. | For 400/422 check parameters; for 403/404 check availability; for 502 retry with backoff. |
+| 502 | `INVALID_REPORT` | The report service responds successfully without a PDF. | Retry, then contact support if repeated. |
+| 503 | `PORTAL_SERVICE_UNCONFIGURED` | The report service is unavailable because setup is incomplete. | Contact support; changing the request will not resolve it. |
+| 503 | `PORTAL_SAS_UNCONFIGURED` | Portal link signing is unavailable. | Contact support. This can also affect checks or field processing for providers using signed links. |
+
+Portal website errors are separate from this API catalog. For example, an expired signed link opened in the portal is not an API-key authentication failure.
+
+### Capacity and deadline errors
+
+| HTTP | Code | Example trigger | What you should do |
+|---|---|---|---|
+| 503 | `CAPACITY_EXCEEDED` | All concurrent processing slots are occupied. | Back off; bulk submission and polling do not consume these processing slots. |
+| 503 | `CAPACITY_UNAVAILABLE` | Processing capacity cannot be determined from the current service configuration. | Contact support if it persists. |
+| 503 | `DEADLINE_EXCEEDED` | The request exceeds its processing budget. | Retry safely; a timeout does not prove no work was saved. |
+| 503 | `REQUEST_CANCELLED` | Processing is cancelled during admission or execution. | Retry if you still need the operation. A disconnected client may receive no response. |
+
+## Validation examples
+
+Bulk submission, job status, and results validation return an array in `error.details`. Other endpoints return flattened `error.details.formErrors` and `error.details.fieldErrors`. Validation runs before API-key authentication, so invalid inputs can return 422 even with a missing key.
+
+### Missing required bulk group
+
+Omitting `provider_group_id` from an otherwise valid bulk request returns HTTP 422:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "details": [{
+      "code": "invalid_type",
+      "expected": "string",
+      "received": "undefined",
+      "path": ["provider_group_id"],
+      "message": "Required"
+    }]
+  }
+}
+```
+
+### Missing effective product pests
+
+If the second field's first product has no product pests, field pests, or top-level pest default:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "details": [{
+      "code": "custom",
+      "path": ["fields", 1, "products", 0, "pest"],
+      "message": "Provide pests for this product or a parent pest default"
+    }]
+  }
+}
+```
+
+`fields[1]` means the second field; `products[0]` means its first product. Set `pest` at one of those three levels. An empty list does not satisfy the requirement.
+
+### A top-level option placed inside a field
+
+Putting `include_geometry` inside the first field returns:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "details": [{
+      "code": "unrecognized_keys",
+      "keys": ["include_geometry"],
+      "path": ["fields", 0],
+      "message": "Unrecognized key(s) in object: 'include_geometry'"
+    }]
+  }
+}
+```
+
+Move `include_geometry` to the top level. It applies to all fields. An invalid `Idempotency-Key` uses the path `["idempotency_key"]`; an invalid results page size uses `["limit"]`.
+
+### Non-bulk validation
+
+For example, omit `locked` when setting an application portal lock:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "details": {
+      "formErrors": [],
+      "fieldErrors": { "locked": ["Required"] }
+    }
+  }
+}
+```
+
+The application-time drift endpoint validates its body under `payload`, so its flattened field errors may be grouped under `payload`.
+
+## Conflict and rate-limit examples
+
+A changed request under a reused bulk idempotency key returns HTTP 409:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "IDEMPOTENCY_CONFLICT",
+    "message": "Idempotency-Key was used with different inputs"
+  }
+}
+```
+
+When the bulk backlog is full, the response is HTTP 429 with JSON:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "BULK_BACKLOG_EXCEEDED",
+    "message": "Bulk processing backlog is full; retry later"
+  }
+}
+```
+
+An API-key or IP request limit instead returns a text body. The retry duration depends on the remaining limit window; `30` below is illustrative:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: text/html; charset=utf-8
+Retry-After: 30
+
+Too many requests, please try again later.
+```
+
+Check `Content-Type` before calling your client's JSON parser. V2 applies per-minute limits to each API key and a shared IP limit. Your quota depends on the service configuration. Polling requests count toward these limits.
+
+## Bulk item failures
+
+An accepted job processes fields independently. A results GET can return HTTP 200 and `success: true` even when an item failed. The example below is one selected item from `items[]`:
+
+```json
+{
+  "item_index": 1,
+  "application_id": "south-application-2026-10-05",
+  "provider_field_id": "south-field",
+  "status": "failed",
+  "attempts": 1,
+  "result": null,
+  "error": {
+    "code": "APPLICATION_FIELD_CONFLICT",
+    "message": "Application belongs to a different field",
+    "retryable": false
+  },
+  "started_at": "2026-10-05T14:00:00.000Z",
+  "completed_at": "2026-10-05T14:00:01.000Z"
+}
+```
+
+Failed items can contain the field/application codes above, portal-signing errors, deadline/cancellation errors, `PROCESSING_FAILED`, or `ATTEMPTS_EXHAUSTED`. `PROCESSING_FAILED` uses message `Field processing failed` for unexpected processing failures; its `retryable` value depends on the cause.
+
+The worker retries transient failures up to three total attempts. `PROCESSING_CONFLICT`, `FIELD_CHANGED`, `APPLICATION_CHANGED`, `DEADLINE_EXCEEDED`, and `REQUEST_CANCELLED` are retryable. For example, exhausted retries can produce:
+
+```json
+{
+  "code": "PROCESSING_FAILED",
+  "message": "Field processing failed",
+  "retryable": true
+}
+```
+
+`retryable: true` describes the cause; it does not promise another automatic attempt after the item becomes `failed`. Wait for a terminal job, inspect failed items, then submit only the fields you need to retry with a new idempotency key. Replaying the original key returns the original job, including its failures.
+
+Repeated processing interruptions can exhaust attempts during recovery. The failed item's error then contains:
+
+```json
+{
+  "code": "ATTEMPTS_EXHAUSTED",
+  "message": "Processing interrupted repeatedly",
+  "retryable": true
+}
+```
+
+Queued items awaiting a retry can retain an `error` from an earlier attempt; starting the next attempt clears it. Use `status` to decide whether the item is final. Successful processing still requires inspecting the assessment's compliance status.
+
+## Assessment issue codes
+
+These codes appear in successful response issue lists, such as `compliance.issues`, drift assessment issues, or runoff-baseline `issues`. They are not HTTP error codes. A bulk item can be `succeeded` while its assessment is `indeterminate` or `not_met`.
+
+| Code | Example condition and next action |
+|---|---|
+| `UNKNOWN_PRODUCT` | Product lookup failed; verify the product name/EPA number and request a fresh assessment. |
+| `ESA_STATUS_UNKNOWN` | A known product lacks a verified ESA status; review its label and resolve the missing evidence. |
+| `RUNOFF_TYPE_UNRESOLVED` | Runoff is required but its mitigation type is unavailable; request support/review. |
+| `SOIL_UNAVAILABLE` | Soil-dependent processing is incomplete; allow enrichment and resubmit for a new assessment. |
+| `SOIL_QUEUE_FAILED` | Soil enrichment could not be queued; resubmit to retry. |
+| `UNRESOLVED_RATE` | The rate unit cannot be interpreted; correct the unit. Conservative buffers may apply. |
+| `LIMITATIONS_REVIEW_REQUIRED` | PULA text includes conditions requiring manual review; read the returned limitations. |
+| `DRIFT_CONDITIONS_UNVERIFIED` | Application weather or buffer placement remains unverified; review actual conditions. |
+| `UNSUPPORTED_MITIGATION` | A required mitigation type needs separate review. |
+| `RUNOFF_APPLICABILITY_UNVERIFIED` | Confirm EPA runoff applicability or any exemption in the portal. |
+| `RUNOFF_REQUIREMENT_UNRESOLVED` | Required runoff points could not be established; resolve the missing requirement. |
+| `LABEL_DROPLET_MINIMUM_UNRESOLVED` | The label's minimum droplet size could not be established; review the label. |
+| `DROPLET_BELOW_LABEL_MINIMUM` | Supplied droplets are smaller than the label minimum; correct the application setup. |
+| `DROPLET_SIZE_MISSING` | Supply the actual droplet size to verify drift mitigation eligibility. |
+| `DRIFT_METHOD_UNRESOLVED` | No buffer rule matches the application method; review product/method compatibility. |
+| `DROPLET_BELOW_BUFFER_TIER` | Droplet size does not meet the selected buffer tier; review the required setup. |
+| `WIND_SPEED_UNRESOLVED` | Application wind speed cannot be matched to a supported buffer tier; review actual weather. |
+| `MANUAL_DRIFT_PRACTICE_UNVERIFIED` | Manually selected drift practices still require verification. |
+| `MANUAL_DRIFT_OPTION_DISALLOWED` | A selected drift option does not apply to the current requirement; revise the selection. |
+| `DRIFT_REQUIREMENT_UNRESOLVED` | A current drift requirement could not be resolved; complete review before relying on the assessment. |
+
+For example, these selected fields can appear in an HTTP 200 response:
+
+```json
+{
+  "success": true,
+  "compliance": {
+    "version": 1,
+    "status": "indeterminate",
+    "processing_complete": false,
+    "issues": [{
+      "code": "SOIL_UNAVAILABLE",
+      "message": "Required soil data is unavailable; retry the application after soil enrichment"
+    }]
+  }
+}
+```
+
+`compliance.version` versions the assessment structure, not the API route. Reuse existing soil/product caches. Background enrichment does not rewrite a completed result; resubmit the application to obtain an updated assessment.
+
+## Retry safely
+
+1. Correct 400/401/403/404/413/422 problems before retrying. Resolve identity and idempotency conflicts instead of blindly retrying every 409.
+2. For transient 409/429/502/503 failures, use exponential backoff with jitter. Honor `Retry-After` when present. A retry header does not make an identity conflict transient.
+3. After a bulk submission timeout, retry the same effective input with the same `Idempotency-Key`. The first attempt may already have created the job.
+4. After acceptance, poll that job. Fetch every results page and inspect each item's status. Do not cache bulk status or results; successful responses use `Cache-Control: no-store`.
+5. After a terminal job, retry failed fields separately with a new key. For single checks, reuse the same provider/account/application identifiers and read the refreshed assessment.
+
+Most error-handler responses with 409, 429, or 503 include `Retry-After: 5`. A deadline response sent directly by the route can omit it. A missing response or timeout does not establish whether the operation saved changes.
+
+---
+
+# V2: Read docs with an AI agent
+
+Source: https://docs.acreblitz.com/v2/ai-agents.md
+
+> Fetch documentation directly by URL, with indexes and complete Markdown for V1 and V2
+
+Give your agent a documentation URL and ask it to fetch the page. You do not need to copy the page into the chat. Reading public documentation requires no API key. Calling the ESA API still requires your provider key.
+
+## Discover pages
+
+Start at [llms.txt](https://docs.acreblitz.com/llms.txt). It links to every documented V1 and V2 page, including every endpoint. Choose the version before building requests:
+
+| Version | API host and prefix | Documentation |
+|---|---|---|
+| V1 | `https://esa.acreblitz.com/api/v1` | Existing pages outside `/v2/` |
+| V2 | `https://esa-v2.acreblitz.com/api/v2` | Pages under `/v2/` |
+
+```bash
+curl --fail --location https://docs.acreblitz.com/llms.txt
+```
+
+## Read a page directly
+
+Append `.md` to a page URL to fetch its Markdown, including parameters and examples:
+
+```bash
+curl --fail --location \
+  https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-submit.md
+```
+
+The hosted site also supports requesting Markdown with an `Accept` header:
+
+```bash
+curl --fail --location --header 'Accept: text/markdown' \
+  https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-submit
+```
+
+For full context, fetch [llms-full.txt](https://docs.acreblitz.com/llms-full.txt). It contains both versions and expands shared input documentation so agents can read required fields without following source-code imports. Prefer individual pages when the agent has a limited context window.
+
+## Example agent task
+
+> Fetch https://docs.acreblitz.com/llms.txt and use only the V2 documentation. Read the bulk submission, job status, results, and error pages directly. Build a request with shared products and crops, then override products and crops for one field. Explain the effective values for each field and handle both HTTP errors and failed items. Read the URLs yourself; do not ask me to paste their contents.
+
+An agent needs a web-fetch or browsing tool to use these links. If its tool cannot fetch a page, it should report that limitation and try the Markdown URL or complete-content file. It should not guess endpoint behavior from an unread page.
+
+---
+
+# V2: API overview
+
+Source: https://docs.acreblitz.com/v2/api-reference/introduction.md
+
+> All V2 endpoints and their processing behavior
+
+Base URL: `https://esa-v2.acreblitz.com`. Every endpoint requires `X-API-Key`.
+
+| Method | Route | Purpose |
+|---|---|---|
+| POST | `/api/v2/esa-check` | Assess one application synchronously. |
+| POST | `/api/v2/esa-check/bulk` | Accept a bulk job. |
+| GET | `/api/v2/esa-check/bulk/{job_id}` | Read job status and item counts. |
+| GET | `/api/v2/esa-check/bulk/{job_id}/results` | Page through per-field results. |
+| POST | `/api/v2/soil/process` | Analyze soil for a field boundary. |
+| POST | `/api/v2/field/runoff-baseline` | Calculate available automatic runoff credits. |
+| POST | `/api/v2/process-field` | Process a field without creating an application. |
+| GET | `/api/v2/mitigations/{mitigation_type}` | Read EPA runoff mitigation options. |
+| GET | `/api/v2/fields/{provider_field_id}/reports/enlist` | Download an Enlist compliance report. |
+| GET | `/api/v2/fields/{provider_field_id}/reports/runoff` | Download a runoff compliance report. |
+| POST | `/api/v2/applications/{application_event_id}/portal-access` | Issue an expiring portal link. |
+| PUT | `/api/v2/applications/{application_event_id}/portal-lock` | Lock or unlock one application's portal changes. |
+| PUT | `/api/v2/groups/{provider_group_id}/portal-lock` | Lock or unlock an account's application group. |
+| POST | `/api/v2/applications/{application_event_id}/drift-buffer/compute` | Refresh the assessment using application-time weather. |
+
+## Processing and persistence
+
+Single checks return a response after required processing. When ESA is required, the saved field/application and response are updated together. No-ESA early returns do not create or update those records.
+
+Bulk intake accepts a job; it does not finish the checks in the intake response. Each processed field uses the same assessment workflow as a single check. Job completion and compliance are separate outcomes. Results remain available for **30 days after the job completes**; save the results you need.
+
+Standalone soil and runoff baseline requests do not save a field/application. Field processing saves a field and automatic runoff credits without creating an application.
+
+## Response and request conventions
+
+JSON requests use `Content-Type: application/json`. Field boundaries use GeoJSON in EPSG:4326. Application identifiers belong to your provider and account. Treat returned job and application-event identifiers as opaque API references.
+
+Single checks can need up to the service's request deadline (90 seconds by default). Client/proxy timeouts should allow the configured deadline. Bulk completion depends on queue wait and field processing; no fixed one-minute job completion time is guaranteed.
+
+See [error handling](https://docs.acreblitz.com/v2/errors) and [authentication](https://docs.acreblitz.com/v2/authentication).
+
+---
+
+# V2: ESA check
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/esa-check.md
+
+> Assess ESA and PULA requirements for one pesticide application
+
+Endpoint: `POST https://esa-v2.acreblitz.com/api/v2/esa-check`
+
+Assess ESA and PULA requirements for one pesticide application.
+
+## Request
+
+### provider_id
+
+body parameter; string; required.
+
+Your assigned provider identifier. It must match the API key.
+
+### account_id
+
+body parameter; string; required.
+
+Your customer account identifier.
+
+### field_name
+
+body parameter; string; required.
+
+Field name shown in the portal and compliance reports.
+
+### application_id
+
+body parameter; string; required.
+
+Your application identifier, unique within this provider and account. Resubmit this application to refresh its assessment.
+
+### application_method
+
+body parameter; string; required.
+
+Supported method: for example `Broadcast-Ground`, `Broadcast-Air`, `Drone`, or `Airblast`. Unsupported values return 422. Liberty Ultra is ground only.
+
+### application_date
+
+body parameter; string; required.
+
+A valid calendar date in `YYYY-MM-DD` format.
+
+### field_boundary
+
+body parameter; object; required.
+
+GeoJSON Feature containing a Polygon or MultiPolygon in EPSG:4326. Rings must be closed; self-intersections are rejected. Maximum 5,000 positions across the field boundary.
+
+### products
+
+body parameter; object[]; required.
+
+One to 100 product objects. See the product fields below.
+
+### crop
+
+body parameter; string[]; required.
+
+Crop names. An explicit empty array is accepted.
+
+### provider_field_id
+
+body parameter; string; optional.
+
+Your field identifier, used for compliance report requests. If omitted or null, the application identifier is used.
+
+### provider_group_id
+
+body parameter; string; optional.
+
+Your work-order or job identifier. Optional for a single check; required for bulk submissions.
+
+### pest
+
+body parameter; string[]; optional.
+
+Default pests for products without their own `pest` list. Every product must have a nonempty effective pest list.
+
+### user_email
+
+body parameter; string; optional.
+
+Optional applicator or grower email address; nullable.
+
+### gpa
+
+body parameter; number; optional.
+
+Positive spray gallons per acre. Required to normalize rates expressed per `100 Gal` or `100 Cu Ft`; nullable.
+
+### droplet_size
+
+body parameter; string; optional.
+
+ASABE category or code: `EF`, `VF`, `F`, `M`, `C`, `VC`, `EC`, or `UC`. Unsupported values return 422; nullable.
+
+### boom_height
+
+body parameter; string; optional.
+
+`low` or `high` for ground applications; nullable.
+
+### Product fields
+
+| Field | Required | Meaning |
+|---|---|---|
+| `product_name` | Yes | Product name. |
+| `rate` | Yes | Nonnegative application rate. |
+| `rate_unit` | Yes | Rate unit, for example `fl oz/ac` or `lb/ac`. |
+| `epa_number` | No | EPA registration number; may be omitted or null for an adjuvant. |
+| `rate_unit_state` | No | `L`, `S`, `D`, `liquid`, `solid`, or `dry`; resolves ambiguous ounce units. |
+| `row_spacing_inches` | No | Positive row spacing; required for row-length rate units. |
+| `pest` | No | Nonempty product pest list; overrides the application pest default. |
+
+### Response options
+
+### include_geometry
+
+body parameter; boolean; optional; default: false.
+
+Include PULA field-boundary data when available.
+
+### include_soil_analysis
+
+body parameter; boolean; optional; default: false.
+
+Include analysis under `compliance.soil.analysis` when soil is available.
+
+### include_mitigations
+
+body parameter; boolean; optional; default: false.
+
+Include available options under `compliance.mitigation_options`.
+
+### buffer_distance_miles
+
+body parameter; number; optional; default: 1.
+
+PULA search buffer distance, clamped to 0–10 miles.
+
+## Response
+
+`success` describes request handling. Read `compliance.status`, `processing_complete`, `soil`, `runoff`, `drift`, and `issues` for the assessment. `compliance.scope` is `requirements_and_gaps`; its `version` is the assessment format version, independent of the API URL version.
+
+Product results include `esa_required`, registration status, effective pests, and PULA limitations. For ESA-required checks, the response also includes an opaque `application_event_id` and a `mitigation_portal_url` when available.
+
+`mitigation_portal_url_expires_at` is the signed-link expiration in signed-link mode and null in token mode. `expires_at` describes the field portal's availability, which can have a different lifetime. Use the returned link unchanged.
+
+## Repeat a check
+
+The provider/account/application identity is reused. Resubmitting updates the saved assessment when ESA processing is required. A no-ESA early return does not update an existing saved application. A changed field boundary refreshes its derived data. Background soil enrichment requires a new check to refresh the assessment.
+
+The example response below shows selected fields only; values depend on product, field, and review state.
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/esa-check' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "provider_id": "your-provider",
+  "account_id": "your-account",
+  "provider_field_id": "north-field",
+  "provider_group_id": "work-order-42",
+  "field_name": "North field",
+  "application_id": "north-application-2026-10-05",
+  "application_method": "Broadcast-Ground",
+  "application_date": "2026-10-05",
+  "field_boundary": {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -95.404,
+            43.102
+          ],
+          [
+            -95.392,
+            43.102
+          ],
+          [
+            -95.392,
+            43.11
+          ],
+          [
+            -95.404,
+            43.11
+          ],
+          [
+            -95.404,
+            43.102
+          ]
+        ]
+      ]
+    }
+  },
+  "products": [
+    {
+      "epa_number": "7969-500",
+      "product_name": "Liberty Ultra",
+      "rate": 32,
+      "rate_unit": "fl oz/ac",
+      "rate_unit_state": "L"
+    }
+  ],
+  "crop": [
+    "Corn"
+  ],
+  "pest": [
+    "Waterhemp"
+  ],
+  "gpa": 15,
+  "droplet_size": "VC",
+  "boom_height": "low",
+  "include_soil_analysis": true,
+  "include_mitigations": true
+}'
+```
+
+```json 200 — selected response fields
+{
+  "success": true,
+  "esa_required": true,
+  "account_id": "your-account",
+  "provider_id": "your-provider",
+  "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+  "compliance": {
+    "version": 1,
+    "scope": "requirements_and_gaps",
+    "calculated_at": "2026-10-05T14:00:00.000Z",
+    "processing_complete": true,
+    "status": "indeterminate",
+    "soil": {
+      "status": "reused"
+    },
+    "issues": [
+      {
+        "code": "DRIFT_CONDITIONS_UNVERIFIED",
+        "message": "Buffer placement and application weather have not been verified"
+      }
+    ]
+  }
+}
+```
+
+## Errors
+
+Processing can return `409 DUPLICATE_FIELD`, `FIELD_OWNERSHIP_CONFLICT`, `DUPLICATE_APPLICATION`, `APPLICATION_FIELD_CONFLICT`, `PROCESSING_CONFLICT`, `FIELD_CHANGED`, or `APPLICATION_CHANGED`. Signed portal setup can return `503 PORTAL_SAS_UNCONFIGURED`. A workflow can also return `422 UNSUPPORTED_APPLICATION_METHOD`; HTTP input validation normally catches this first as `INVALID_REQUEST`. See [assessment issues](https://docs.acreblitz.com/v2/errors#assessment-issue-codes) for incomplete evidence returned with HTTP 200.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Submit bulk checks
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-submit.md
+
+> Submit multiple applications with shared or per-field products and crops
+
+Endpoint: `POST https://esa-v2.acreblitz.com/api/v2/esa-check/bulk`
+
+Submit one job containing 1–100 field applications. Put values shared by your fields at the top of the request. Inside `fields[]`, supply each field's identity and boundary, plus any values that differ for that field.
+
+**A field value replaces the matching top-level value for that field only.** Other fields still use the top-level default. Products and crops follow the same rule: arrays replace the entire array; they never merge.
+
+## Request
+
+### Idempotency-Key
+
+header parameter; string; optional.
+
+Optional, strongly recommended. One to 200 characters. Scoped to your provider/account; reuse it only with identical effective inputs.
+
+### provider_id
+
+body parameter; string; required.
+
+Your assigned provider, matching the key.
+
+### account_id
+
+body parameter; string; required.
+
+Your account identifier.
+
+### provider_group_id
+
+body parameter; string; required.
+
+Required nonempty work-order/job identifier, up to 200 characters. Shared by every field.
+
+### fields
+
+body parameter; object[]; required.
+
+One to 100 field entries. Each requires `application_id`, `field_name`, and `field_boundary`; `provider_field_id` is optional.
+
+### products
+
+body parameter; object[]; optional.
+
+Default products; each field must have effective products.
+
+### crop
+
+body parameter; string[]; optional.
+
+Default crops; each field must have an effective crop array. An explicit empty array is valid.
+
+### pest
+
+body parameter; string[]; optional.
+
+Default pests, unless replaced by the field or product.
+
+### application_date
+
+body parameter; string; optional.
+
+Default `YYYY-MM-DD` application date.
+
+### application_method
+
+body parameter; string; optional.
+
+Default supported method.
+
+### gpa
+
+body parameter; number; optional.
+
+Default positive spray gallons per acre; nullable.
+
+### droplet_size
+
+body parameter; string; optional.
+
+Default supported droplet category/code; nullable.
+
+### boom_height
+
+body parameter; string; optional.
+
+Default `low` or `high`; nullable.
+
+### user_email
+
+body parameter; string; optional.
+
+Default valid email; nullable.
+
+### include_geometry
+
+body parameter; boolean; optional; default: false.
+
+Top-level response option applied to every field.
+
+### include_soil_analysis
+
+body parameter; boolean; optional; default: false.
+
+Top-level response option applied to every field.
+
+### include_mitigations
+
+body parameter; boolean; optional; default: false.
+
+Top-level response option applied to every field.
+
+### buffer_distance_miles
+
+body parameter; number; optional; default: 1.
+
+Top-level PULA search buffer, clamped to 0–10 miles.
+
+## Where each value belongs
+
+| Location | Properties | Rule |
+|---|---|---|
+| Top level only | `provider_id`, `account_id`, `provider_group_id` | Required once; apply to every field. You cannot mix providers, accounts, or groups within one job. |
+| Top level only | `include_geometry`, `include_soil_analysis`, `include_mitigations`, `buffer_distance_miles` | Apply to every field. Defaults are `false`, `false`, `false`, and `1`. |
+| Inside each field only | `application_id`, `field_name`, `field_boundary` | Required in every field entry. |
+| Inside each field only | `provider_field_id` | Optional. Omitted or `null` uses that field's `application_id`. |
+| Top level and/or inside a field | `products`, `crop`, `application_date`, `application_method` | Each field needs a value, either inherited or supplied on that field. |
+| Top level and/or inside a field | `pest` | Default pests for products without their own `pest` list. |
+| Top level and/or inside a field | `gpa`, `droplet_size`, `boom_height`, `user_email` | Optional. A field can inherit, replace, or explicitly clear a default with `null`. |
+
+You may omit all shared application settings and specify them separately in every field. You may also mix shared defaults and overrides in the same request. See [single-check inputs](https://docs.acreblitz.com/v2/api-reference/endpoint/esa-check) for allowed methods, droplet sizes, product properties, and field boundary limits.
+
+## How defaults and overrides resolve
+
+For each field, the API starts with the top-level defaults, replaces each property explicitly supplied by that field, then validates the resulting application independently.
+
+| What you send inside a field | Effective value for that field |
+|---|---|
+| Omit `products` | Use the complete top-level `products` array. |
+| Supply `products` | Use only that field's complete product array. Products are not matched or merged by EPA number or array position. |
+| Omit `crop` | Use the top-level crop array. |
+| Supply `crop: ["Soybeans"]` | Replace every top-level crop with `Soybeans`. |
+| Supply `crop: []` | Use an empty crop array; do not inherit. This is valid input. |
+| Omit `gpa` | Use the top-level GPA, if present. |
+| Supply `gpa: 20` | Use 20 for this field. |
+| Supply `gpa: null` | Clear this field's GPA even if the top level specifies one. The same rule applies to droplet size, boom height, and email. |
+| Supply `products: []`, `pest: []`, or `crop: null` | Reject the entire submission with `422 INVALID_REQUEST`. |
+
+**To change just one product's rate, send the full desired product array for that field**, including the other products you want retained. Each product needs its required properties (`product_name`, `rate`, and `rate_unit`); a partial product such as `{ "rate": 28 }` is invalid.
+
+### Pest precedence
+
+Pests have one additional level of precedence: **product `pest` → field `pest` → top-level `pest`**. Product pest lists stay attached to their product even when the product array is inherited. A field pest override affects only products without their own pest list. Every product must end up with a nonempty pest list.
+
+### Worked example
+
+The complete cURL request on this page submits two fields using Liberty Ultra with `Broadcast-Ground`:
+
+North supplies no application-setting overrides, so every shared default applies. South supplies a complete replacement product array, replaces `crop` and `gpa`, and clears `boom_height` with `null`. South still inherits the date, method, pests, and droplet size.
+
+| Setting | Shared default and North result | South result |
+|---|---|---|
+| Products | Liberty Ultra, 32 fl oz/ac | Liberty Ultra, 28 fl oz/ac (replaced) |
+| Crop | `Corn` | `Soybeans` (replaced) |
+| Pests | `Waterhemp` | `Waterhemp` (inherited) |
+| Method | `Broadcast-Ground` | `Broadcast-Ground` (inherited) |
+| GPA | `15` | `20` (replaced) |
+| Droplet size | `VC` | `VC` (inherited) |
+| Boom height | `low` | Unspecified (`null` clears the default) |
+
+Clearing an application setting does not establish that it is irrelevant to compliance. Missing information can leave the assessment `indeterminate`.
+
+## Validation before acceptance
+
+All fields are validated before the API accepts a job. **One invalid field rejects the entire submission with `422 INVALID_REQUEST`; no job is created.** This differs from processing failures after acceptance, where some items can succeed and others fail.
+
+- Unknown top-level and field properties are rejected. For example, `fields[0].include_geometry` is invalid because that option belongs at the top level.
+- Supplied defaults must themselves be valid, even if every field overrides them. Omit an unused default instead of sending an invalid placeholder.
+- `application_id` values and effective `provider_field_id` values must be unique within the submission.
+- Each field boundary may contain at most 5,000 coordinate positions across all its rings. The total request body limit is 5 MB.
+
+For example, a duplicate application ID on the second field returns:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "details": [{
+      "code": "custom",
+      "path": ["fields", 1, "application_id"],
+      "message": "Duplicate application_id in bulk submission"
+    }]
+  }
+}
+```
+
+Issue paths use zero-based array indexes, so `fields[1]` is the second field. Correct the indicated input and resubmit. See [validation examples](https://docs.acreblitz.com/v2/errors#validation-examples) for missing group IDs, pests, and unknown properties.
+
+## Accepted response and polling
+
+The response is **202 Accepted**, including on an idempotent replay. It includes `Location` (the status path), `Retry-After: 5`, and `Cache-Control: no-store`. A replay can return an already-terminal job status. Both URLs are relative to the V2 hostname.
+
+Poll [job status](https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-status) and fetch [results](https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-results). A job with some failed items can finish as `completed_with_errors`. A succeeded item can still contain an indeterminate or unmet compliance assessment.
+
+## Idempotency and retention
+
+The same key and effective input return the existing job with `replayed: true`. Changing inputs returns `409 IDEMPOTENCY_CONFLICT`. Without the header, each accepted submission creates a new job. Jobs and replay keys expire 30 days after completion; after expiration, the same key can create a new job.
+
+Split larger submissions into jobs of at most 100 fields. They may share `provider_group_id`, but each job needs its own idempotency key. A full backlog returns `429 BULK_BACKLOG_EXCEEDED`.
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/esa-check/bulk' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Idempotency-Key: work-order-42-first-pass' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "provider_id": "your-provider",
+  "account_id": "your-account",
+  "provider_group_id": "work-order-42",
+  "application_method": "Broadcast-Ground",
+  "application_date": "2026-10-05",
+  "products": [
+    {
+      "epa_number": "7969-500",
+      "product_name": "Liberty Ultra",
+      "rate": 32,
+      "rate_unit": "fl oz/ac",
+      "rate_unit_state": "L"
+    }
+  ],
+  "crop": [
+    "Corn"
+  ],
+  "pest": [
+    "Waterhemp"
+  ],
+  "gpa": 15,
+  "droplet_size": "VC",
+  "boom_height": "low",
+  "include_soil_analysis": true,
+  "include_mitigations": true,
+  "fields": [
+    {
+      "application_id": "north-application-2026-10-05",
+      "provider_field_id": "north-field",
+      "field_name": "North field",
+      "field_boundary": {
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -95.404,
+                43.102
+              ],
+              [
+                -95.392,
+                43.102
+              ],
+              [
+                -95.392,
+                43.11
+              ],
+              [
+                -95.404,
+                43.11
+              ],
+              [
+                -95.404,
+                43.102
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "application_id": "south-application-2026-10-05",
+      "provider_field_id": "south-field",
+      "field_name": "South field",
+      "field_boundary": {
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -95.404,
+                43.092
+              ],
+              [
+                -95.392,
+                43.092
+              ],
+              [
+                -95.392,
+                43.1
+              ],
+              [
+                -95.404,
+                43.1
+              ],
+              [
+                -95.404,
+                43.092
+              ]
+            ]
+          ]
+        }
+      },
+      "crop": [
+        "Soybeans"
+      ],
+      "gpa": 20,
+      "boom_height": null,
+      "products": [
+        {
+          "epa_number": "7969-500",
+          "product_name": "Liberty Ultra",
+          "rate": 28,
+          "rate_unit": "fl oz/ac",
+          "rate_unit_state": "L"
+        }
+      ]
+    }
+  ]
+}'
+```
+
+```json 202
+{
+  "success": true,
+  "job_id": "019953f8-8c00-7000-8000-000000000001",
+  "status": "queued",
+  "total_items": 2,
+  "replayed": false,
+  "status_url": "/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001",
+  "results_url": "/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001/results"
+}
+```
+
+## Errors
+
+Submission-specific errors are `409 IDEMPOTENCY_CONFLICT` and `429 BULK_BACKLOG_EXCEEDED`. Invalid defaults, overrides, duplicate identities, group IDs, or idempotency headers return `422 INVALID_REQUEST`. No job is created for a validation error.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Get bulk job status
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-status.md
+
+> Read processing progress and terminal counts
+
+Endpoint: `GET https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/{job_id}`
+
+Read processing progress and terminal counts.
+
+### job_id
+
+path parameter; string; required.
+
+Opaque job identifier from the accepted response.
+
+## Job lifecycle
+
+`status` is `queued`, `processing`, `completed`, `completed_with_errors`, or `failed`. The last three are terminal. `completed` means every item succeeded, `completed_with_errors` means some items succeeded and some failed, and `failed` means no item succeeded.
+
+`counts` reports queued, processing, succeeded, and failed items. `started_at`, `completed_at`, and `expires_at` can be null while work is pending. Results expire 30 days after terminal completion.
+
+Poll with backoff (for example, every five seconds). Responses use `Cache-Control: no-store`. A different provider or expired/unknown job receives `404 BULK_JOB_NOT_FOUND`.
+
+```bash cURL
+curl --request GET 'https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY"
+```
+
+```json 200
+{
+  "success": true,
+  "job_id": "019953f8-8c00-7000-8000-000000000001",
+  "provider_id": "your-provider",
+  "account_id": "your-account",
+  "provider_group_id": "work-order-42",
+  "status": "queued",
+  "total_items": 2,
+  "counts": {
+    "queued": 2,
+    "processing": 0,
+    "succeeded": 0,
+    "failed": 0
+  },
+  "created_at": "2026-10-05T14:00:00.000Z",
+  "started_at": null,
+  "completed_at": null,
+  "expires_at": null,
+  "status_url": "/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001",
+  "results_url": "/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001/results"
+}
+```
+
+## Errors
+
+A malformed job UUID returns `422 INVALID_REQUEST`. An unknown, expired, or other-provider job returns `404 BULK_JOB_NOT_FOUND`.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Get bulk results
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-results.md
+
+> Read paginated results in original submission order
+
+Endpoint: `GET https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/{job_id}/results`
+
+Read paginated results in original submission order.
+
+### job_id
+
+path parameter; string; required.
+
+Job identifier returned by submission.
+
+### offset
+
+query parameter; integer; optional; default: 0.
+
+Zero-based offset, 0–100.
+
+### limit
+
+query parameter; integer; optional; default: 20.
+
+Page size, 1–50.
+
+## Item results
+
+Items remain in submission order (`item_index` starts at zero). Each has `application_id`, `provider_field_id`, `status`, `attempts`, `started_at`, `completed_at`, `result`, and `error`. New pending items have null result/error; queued items awaiting a retry may retain an error from an earlier attempt. Starting the next attempt clears that error. Treat `status` as authoritative. Succeeded items contain the same response structure as a single check. Failed items contain `{ code, message, retryable }` under `error`.
+
+Read `result.compliance` for succeeded checks; item success does not imply compliance. Follow `next_offset` until it is null. You can read results before the job completes, but queued/processing items are not final. Save the results you need before the 30-day retention window ends. Responses use `Cache-Control: no-store`.
+
+The example below shows one pending item on the first page.
+
+```bash cURL
+curl --request GET 'https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001/results?offset=0&limit=1' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY"
+```
+
+```json 200
+{
+  "success": true,
+  "job_id": "019953f8-8c00-7000-8000-000000000001",
+  "total_items": 2,
+  "offset": 0,
+  "limit": 1,
+  "next_offset": 1,
+  "items": [
+    {
+      "item_index": 0,
+      "application_id": "north-application-2026-10-05",
+      "provider_field_id": "north-field",
+      "status": "queued",
+      "attempts": 0,
+      "result": null,
+      "error": null,
+      "started_at": null,
+      "completed_at": null
+    }
+  ]
+}
+```
+
+## Errors
+
+An invalid job UUID, offset, or limit returns `422 INVALID_REQUEST`. An unknown, expired, or other-provider job returns `404 BULK_JOB_NOT_FOUND`. HTTP 200 can contain failed items; see [bulk item failures and retry examples](https://docs.acreblitz.com/v2/errors#bulk-item-failures).
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Analyze soil
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/soil-process.md
+
+> Analyze hydrologic soil groups and slope for a field boundary
+
+Endpoint: `POST https://esa-v2.acreblitz.com/api/v2/soil/process`
+
+Analyze hydrologic soil groups and slope for a field boundary.
+
+### provider_id
+
+body parameter; string; required.
+
+Your assigned provider identifier, matching the API key.
+
+### field_boundary
+
+body parameter; object; required.
+
+GeoJSON Feature with Polygon or MultiPolygon in EPSG:4326. The single-check field-boundary limits apply.
+
+## Response
+
+The response contains `soil_data` (a GeoJSON FeatureCollection clipped to the field boundary), `dominant_hydgrpdcd`, `total_area_sqm`, `hydgrpdcd_analysis`, `weighted_avg_slopegradwta`, and `musym_analysis`. Missing hydrologic group or slope attributes can be null.
+
+This endpoint does not save a field/application. Soil may be reused across requests for the same area. The example shows summary fields; the complete response also includes field-boundary data and map-unit analysis.
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/soil/process' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "provider_id": "your-provider",
+  "field_boundary": {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -95.404,
+            43.102
+          ],
+          [
+            -95.392,
+            43.102
+          ],
+          [
+            -95.392,
+            43.11
+          ],
+          [
+            -95.404,
+            43.11
+          ],
+          [
+            -95.404,
+            43.102
+          ]
+        ]
+      ]
+    }
+  }
+}'
+```
+
+```json 200 — selected response fields
+{
+  "dominant_hydgrpdcd": "B",
+  "total_area_sqm": 865700.0,
+  "hydgrpdcd_analysis": {
+    "B": {
+      "area_sqm": 865700.0,
+      "percentage": 100
+    }
+  },
+  "weighted_avg_slopegradwta": 2.1
+}
+```
+
+## Errors
+
+Invalid field boundaries return `422 INVALID_REQUEST`. A dependency failure can return `503 REQUEST_FAILED`; capacity and deadline errors also apply.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Runoff baseline
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/runoff-baseline.md
+
+> Calculate automatic runoff mitigation credits without saving a field
+
+Endpoint: `POST https://esa-v2.acreblitz.com/api/v2/field/runoff-baseline`
+
+Calculate automatic runoff mitigation credits without saving a field.
+
+### field_boundary
+
+body parameter; object; required.
+
+A GeoJSON Feature or bare Polygon/MultiPolygon in EPSG:4326. A FeatureCollection with exactly one field is also accepted. A JSON string containing one supported value is accepted.
+
+## Response
+
+`baseline_points` is the sum of `auto_credits`. Each credit includes `sub_option_id`, `label`, `points`, and `source` (`always`, `slope`, `soil`, or `county`). The response also includes `counties`, a `soil_data` summary, `processing_complete`, and `issues`.
+
+These are available automatic credits, not a product-specific compliance determination. The endpoint does not save a field/application. If soil is unavailable, it returns a partial baseline with `processing_complete: false` and `SOIL_UNAVAILABLE`; do not treat that partial sum as the full baseline.
+
+The example shows selected response fields when soil could not be processed. Available non-soil credits are still returned.
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/field/runoff-baseline' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "field_boundary": {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -95.404,
+            43.102
+          ],
+          [
+            -95.392,
+            43.102
+          ],
+          [
+            -95.392,
+            43.11
+          ],
+          [
+            -95.404,
+            43.11
+          ],
+          [
+            -95.404,
+            43.102
+          ]
+        ]
+      ]
+    }
+  }
+}'
+```
+
+```json 200 — selected response fields
+{
+  "soil_data": null,
+  "processing_complete": false,
+  "issues": [
+    {
+      "code": "SOIL_UNAVAILABLE",
+      "message": "Baseline excludes soil-dependent credits; retry for a complete result"
+    }
+  ]
+}
+```
+
+## Errors
+
+Invalid field boundaries return `422 INVALID_REQUEST`. Missing soil can instead return HTTP 200 with `processing_complete: false` and the `SOIL_UNAVAILABLE` issue. Inspect completeness before using the baseline.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Process a field
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/process-field.md
+
+> Save a field with soil analysis and automatic runoff credits
+
+Endpoint: `POST https://esa-v2.acreblitz.com/api/v2/process-field`
+
+Save a field with soil analysis and automatic runoff credits.
+
+## Request
+
+### provider_id
+
+body parameter; string; required.
+
+Your assigned provider identifier.
+
+### account_id
+
+body parameter; string; required.
+
+Your account identifier.
+
+### provider_field_id
+
+body parameter; string; required.
+
+Required external field identifier.
+
+### field_name
+
+body parameter; string; required.
+
+Field name displayed in the portal and compliance reports.
+
+### field_boundary
+
+body parameter; object; required.
+
+GeoJSON Feature with Polygon/MultiPolygon in EPSG:4326; uses single-check boundary validation.
+
+### year
+
+body parameter; integer; optional.
+
+Year for automatic runoff credits, 1900–2200; defaults to the current UTC year.
+
+### include_mitigation_options
+
+body parameter; boolean; optional; default: false.
+
+Include the EPA runoff option tree with selected measures.
+
+## Processing behavior
+
+This endpoint saves a field, its processed soil, and automatic annual runoff credits. It does not create an application or run a product-specific assessment. Soil must complete before this update is saved; soil failure leaves the existing field data intact.
+
+## Response
+
+The response includes your `provider_field_id`, `year`, portal link fields, `soil_data`, `counties`, `pulas`, `mitigations_applied`, `steps`, and `summary`. `mitigation_options` is null unless requested. `steps.soil.data.status` distinguishes `reused` from `fetched`; `fetched` can still reuse soil source data for the area.
+
+The example shows selected fields only.
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/process-field' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "provider_id": "your-provider",
+  "account_id": "your-account",
+  "provider_field_id": "north-field",
+  "field_name": "North field",
+  "field_boundary": {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -95.404,
+            43.102
+          ],
+          [
+            -95.392,
+            43.102
+          ],
+          [
+            -95.392,
+            43.11
+          ],
+          [
+            -95.404,
+            43.11
+          ],
+          [
+            -95.404,
+            43.102
+          ]
+        ]
+      ]
+    }
+  },
+  "year": 2026,
+  "include_mitigation_options": true
+}'
+```
+
+```json 200 — selected response fields
+{
+  "success": true,
+  "provider_field_id": "north-field",
+  "year": 2026,
+  "steps": {
+    "spatial": {
+      "success": true
+    },
+    "soil": {
+      "success": true,
+      "data": {
+        "status": "reused"
+      }
+    },
+    "mitigations": {
+      "success": true
+    }
+  },
+  "summary": {
+    "pula_count": 0,
+    "soil_available": true,
+    "mitigations_applied_count": 2,
+    "total_points": 3
+  }
+}
+```
+
+## Errors
+
+Field processing can return `409 DUPLICATE_FIELD`, `FIELD_OWNERSHIP_CONFLICT`, `PROCESSING_CONFLICT`, or `FIELD_CHANGED`, and `503 PORTAL_SAS_UNCONFIGURED` when signed portal links are unavailable.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Get runoff mitigation options
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/mitigations.md
+
+> Read the active EPA runoff mitigation option tree
+
+Endpoint: `GET https://esa-v2.acreblitz.com/api/v2/mitigations/{mitigation_type}`
+
+Read the active EPA runoff mitigation option tree.
+
+### mitigation_type
+
+path parameter; string; required.
+
+Only `epa_runoff` is supported. Other values return 422.
+
+## Response
+
+`categories` contains active categories in display order. Each category has `options`; each option has `sub_options`. Options contain labels and available runoff points. Use the returned identifiers and definitions when presenting choices, rather than hardcoding a points catalog.
+
+A valid type with no active definitions returns an empty categories array. The example shows that empty-catalog response.
+
+```bash cURL
+curl --request GET 'https://esa-v2.acreblitz.com/api/v2/mitigations/epa_runoff' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY"
+```
+
+```json 200
+{
+  "mitigation_type": "epa_runoff",
+  "categories": []
+}
+```
+
+## Errors
+
+A mitigation type other than `epa_runoff` returns `422 INVALID_REQUEST`. Dependency and capacity errors can also apply.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Enlist compliance report
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/enlist-report.md
+
+> Download the Enlist compliance report for a provider-owned field
+
+Endpoint: `GET https://esa-v2.acreblitz.com/api/v2/fields/{provider_field_id}/reports/enlist`
+
+Download the Enlist compliance report for a provider-owned field.
+
+### provider_field_id
+
+path parameter; string; required.
+
+Your field identifier from the single check, bulk field entry, or field-processing request.
+
+### year
+
+query parameter; integer; optional.
+
+Optional report year, 1900–2200.
+
+## Response
+
+A successful request returns **200** with `Content-Type: application/pdf` and an attachment filename. Save the response bytes as a `.pdf` file.
+
+```http 200
+Content-Type: application/pdf
+Content-Disposition: attachment; filename=mitigation-report.pdf
+```
+
+The field must belong to your provider and have an active, unexpired, unarchived portal. An unknown or unavailable field returns 404; an ambiguous field identifier returns 409. Dependent report failures can return 502. The report uses the field's current saved data; the download request does not rerun the ESA check.
+
+The example requests the 2026 report.
+
+```bash cURL
+curl --request GET 'https://esa-v2.acreblitz.com/api/v2/fields/north-field/reports/enlist?year=2026' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --output enlist-report.pdf
+```
+
+## Errors
+
+Report errors are `404 FIELD_NOT_FOUND`, `409 DUPLICATE_FIELD`, `502 INVALID_REPORT`, `503 PORTAL_SERVICE_UNCONFIGURED` or `PORTAL_SAS_UNCONFIGURED`, and `PORTAL_REQUEST_FAILED` with HTTP 400, 403, 404, 422, or 502. Error bodies use JSON even though successful responses are PDFs.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Runoff compliance report
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/runoff-report.md
+
+> Download the Runoff compliance report for a provider-owned field
+
+Endpoint: `GET https://esa-v2.acreblitz.com/api/v2/fields/{provider_field_id}/reports/runoff`
+
+Download the Runoff compliance report for a provider-owned field.
+
+### provider_field_id
+
+path parameter; string; required.
+
+Your field identifier from the single check, bulk field entry, or field-processing request.
+
+### year
+
+query parameter; integer; optional.
+
+Optional report year, 1900–2200.
+
+## Response
+
+A successful request returns **200** with `Content-Type: application/pdf` and an attachment filename. Save the response bytes as a `.pdf` file.
+
+```http 200
+Content-Type: application/pdf
+Content-Disposition: attachment; filename=mitigation-report.pdf
+```
+
+The field must belong to your provider and have an active, unexpired, unarchived portal. An unknown or unavailable field returns 404; an ambiguous field identifier returns 409. Dependent report failures can return 502. The report uses the field's current saved data; the download request does not rerun the ESA check.
+
+The example requests the 2026 report.
+
+```bash cURL
+curl --request GET 'https://esa-v2.acreblitz.com/api/v2/fields/north-field/reports/runoff?year=2026' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --output runoff-report.pdf
+```
+
+## Errors
+
+Report errors are `404 FIELD_NOT_FOUND`, `409 DUPLICATE_FIELD`, `502 INVALID_REPORT`, `503 PORTAL_SERVICE_UNCONFIGURED` or `PORTAL_SAS_UNCONFIGURED`, and `PORTAL_REQUEST_FAILED` with HTTP 400, 403, 404, 422, or 502. Error bodies use JSON even though successful responses are PDFs.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Issue portal access
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/portal-access.md
+
+> Issue an expiring portal link for one application
+
+Endpoint: `POST https://esa-v2.acreblitz.com/api/v2/applications/{application_event_id}/portal-access`
+
+Issue an expiring portal link for one application.
+
+## Request
+
+### application_event_id
+
+path parameter; string; required.
+
+Opaque application-event reference returned by an ESA check.
+
+### ttl_seconds
+
+body parameter; integer; optional.
+
+Link lifetime, 60–86,400 seconds. Defaults to your configured lifetime (one hour by default).
+
+### return_url
+
+body parameter; string; optional.
+
+Optional absolute HTTP(S) URL used to return the user when this link is rejected as expired; maximum 2,000 characters.
+
+## Response and access
+
+Returns an expiring `portal_url`, `expires_at`, `application_event_id`, `provider_group_id`, and the provider's `portal_access_mode`. Treat the URL as an opaque credential and use it unchanged. Do not derive or parse its token format.
+
+This endpoint issues a signed expiring link in either access mode. In signed-link mode, the normal ESA-check response already provides an expiring `mitigation_portal_url`; an extra call is often unnecessary. In token mode, this endpoint lets you issue a short-lived link without changing your provider's default access mode.
+
+The application must belong to your provider and its portal must be available. A grouped application link also supports navigation between applications in its job group. A portal lock prevents mitigation writes but does not prevent reading the portal.
+
+The example shows selected response fields. Its placeholder URL represents the complete URL returned by the service.
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/applications/019953f8-8c00-7000-8000-000000000002/portal-access' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "ttl_seconds": 3600,
+  "return_url": "https://partner.example/applications/north"
+}'
+```
+
+```json 200 — selected response fields
+{
+  "success": true,
+  "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+  "provider_group_id": "work-order-42",
+  "portal_url": "https://acreblitz.com/esaportal/field?t=opaque-returned-credential",
+  "expires_at": "2026-10-05T15:00:00.000Z",
+  "portal_access_mode": "token"
+}
+```
+
+## Errors
+
+Endpoint-specific errors are `404 APPLICATION_NOT_FOUND`, `403 INVALID_TOKEN`, `INACTIVE_TOKEN`, or `PORTAL_EXPIRED`, and `503 PORTAL_SAS_UNCONFIGURED`. Portal access denials refer to the field’s availability, not your API key.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Set application portal lock
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/portal-lock.md
+
+> Lock or unlock portal mitigation changes for one application
+
+Endpoint: `PUT https://esa-v2.acreblitz.com/api/v2/applications/{application_event_id}/portal-lock`
+
+Lock or unlock portal mitigation changes for one application.
+
+### application_event_id
+
+path parameter; string; required.
+
+Application-event reference returned by the check.
+
+### locked
+
+body parameter; boolean; required.
+
+Use true to lock mitigation changes or false to unlock them.
+
+## Lock behavior
+
+The lock covers this application's mitigation writes and its shared field-year runoff selections. Reads and compliance report downloads remain available. Repeating a lock preserves the original `portal_locked_at` timestamp; unlocking returns null for that timestamp.
+
+Applications sharing the same field/year share runoff selections. A lock on a sibling application can therefore keep those shared runoff writes locked even after this application is unlocked.
+
+```bash cURL
+curl --request PUT 'https://esa-v2.acreblitz.com/api/v2/applications/019953f8-8c00-7000-8000-000000000002/portal-lock' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "locked": true
+}'
+```
+
+```json 200
+{
+  "success": true,
+  "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+  "locked": true,
+  "portal_locked_at": "2026-10-05T14:05:00.000Z"
+}
+```
+
+## Errors
+
+An absent or other-provider application returns `404 APPLICATION_NOT_FOUND`. A missing/non-boolean `locked` value or malformed application UUID returns `422 INVALID_REQUEST`.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Set group portal lock
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/group-portal-lock.md
+
+> Lock or unlock all current applications in an account-scoped group
+
+Endpoint: `PUT https://esa-v2.acreblitz.com/api/v2/groups/{provider_group_id}/portal-lock`
+
+Lock or unlock all current applications in an account-scoped group.
+
+### provider_group_id
+
+path parameter; string; required.
+
+Your job/work-order identifier, up to 200 characters.
+
+### account_id
+
+body parameter; string; required.
+
+Required account identifier. Group identifiers may repeat across accounts.
+
+### locked
+
+body parameter; boolean; required.
+
+Use true to lock current applications or false to unlock them.
+
+## Group scope
+
+The operation applies to existing applications owned by your provider with this account and group. It returns their application-event references. An empty or unowned group returns 404.
+
+New applications added afterward start unlocked. Wait for bulk completion before locking a complete job, and call again after adding applications. Group unlock also clears locks set individually on those applications. Shared runoff selections follow the same field/year lock rule as an individual application lock.
+
+```bash cURL
+curl --request PUT 'https://esa-v2.acreblitz.com/api/v2/groups/work-order-42/portal-lock' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "account_id": "your-account",
+  "locked": true
+}'
+```
+
+```json 200
+{
+  "success": true,
+  "provider_group_id": "work-order-42",
+  "account_id": "your-account",
+  "locked": true,
+  "application_event_ids": [
+    "019953f8-8c00-7000-8000-000000000002"
+  ]
+}
+```
+
+## Errors
+
+No applications for the supplied group/account returns `404 GROUP_NOT_FOUND`. Invalid or missing account, group, or lock values return `422 INVALID_REQUEST`.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+---
+
+# V2: Compute application-time drift buffers
+
+Source: https://docs.acreblitz.com/v2/api-reference/endpoint/drift-buffer.md
+
+> Refresh an application assessment with current wind and application setup
+
+Endpoint: `POST https://esa-v2.acreblitz.com/api/v2/applications/{application_event_id}/drift-buffer/compute`
+
+Refresh an application assessment with current wind and application setup.
+
+## Request
+
+### application_event_id
+
+path parameter; string; required.
+
+Opaque application-event reference from a previous ESA check.
+
+### wind_direction_deg
+
+body parameter; number; required.
+
+Wind direction in degrees, greater than or equal to 0 and less than 360.
+
+### wind_speed_mph
+
+body parameter; number; required.
+
+Wind speed, 0–80 mph.
+
+### temperature_f
+
+body parameter; number; optional.
+
+Optional observed temperature, -100–200 degrees Fahrenheit; nullable.
+
+### humidity_percent
+
+body parameter; number; optional.
+
+Optional observed humidity, 0–100; nullable.
+
+### application_method
+
+body parameter; string; optional.
+
+Optional supported method; otherwise use the saved method.
+
+### droplet_size
+
+body parameter; string; optional.
+
+Optional supported category/code; nullable. An omitted value uses the saved value; explicit null clears it.
+
+### boom_height
+
+body parameter; string; optional.
+
+Optional `low` or `high`; nullable. An omitted value uses the saved value; explicit null clears it.
+
+### gpa
+
+body parameter; number; optional.
+
+Optional positive spray gallons per acre; nullable. An omitted value uses the saved value; explicit null clears it.
+
+### rate_updates
+
+body parameter; object[]; optional.
+
+Up to 100 rate changes. Each requires `product_index` (zero-based), `epa_number`, nonnegative `rate`, and nonempty `rate_unit`; optional `rate_unit_state` and positive `row_spacing_inches`. The index and registration must match the saved product.
+
+### geometry
+
+body parameter; string; optional.
+
+`none`, `buffer`, `treatable`, or `both`; defaults to `none`.
+
+## Assessment behavior
+
+The endpoint resolves your saved application, applies current weather/setup inputs and rate changes, and returns a refreshed check plus `application_time`. Weather and the assessment are saved for that application. It checks the application revision; conflicting changes return 409.
+
+`application_time` includes submitted inputs, effective rates, reductions, manual mitigation claims, feature scope, feature counts, per-edge buffers, and product-specific buffer details. Requested field-boundary output is returned under `application_time.geometry` and is not retained in the saved assessment snapshot.
+
+The returned `compliance.status` is authoritative for this assessment. Manual claims and conditions that cannot be verified remain explicit issues; a calculated buffer alone is not application clearance. Protected features are read for this request so new nearby features can affect the result.
+
+The example shows selected response fields.
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/applications/019953f8-8c00-7000-8000-000000000002/drift-buffer/compute' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "wind_direction_deg": 180,
+  "wind_speed_mph": 8,
+  "temperature_f": 72,
+  "humidity_percent": 55,
+  "application_method": "Broadcast-Ground",
+  "droplet_size": "VC",
+  "boom_height": "low",
+  "gpa": 15,
+  "rate_updates": [
+    {
+      "product_index": 0,
+      "epa_number": "7969-500",
+      "rate": 28,
+      "rate_unit": "fl oz/ac",
+      "rate_unit_state": "L"
+    }
+  ],
+  "geometry": "both"
+}'
+```
+
+```json 200 — selected response fields
+{
+  "success": true,
+  "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+  "application_time": {
+    "checked_at": "2026-10-05T14:10:00.000Z",
+    "status": "indeterminate",
+    "feature_scope": "global_only",
+    "non_managed_feature_count": 0,
+    "exclusion_feature_count": 0,
+    "inputs": {
+      "wind_direction_deg": 180,
+      "wind_speed_mph": 8,
+      "temperature_f": 72,
+      "humidity_percent": 55,
+      "application_method": "Broadcast-Ground",
+      "droplet_size": "very_coarse",
+      "boom_height": "low",
+      "gpa": 15
+    }
+  },
+  "compliance": {
+    "version": 1,
+    "scope": "requirements_and_gaps",
+    "status": "indeterminate"
+  }
+}
+```
+
+## Errors
+
+Endpoint-specific errors include `404 APPLICATION_NOT_FOUND`; `422 NO_FIELD_GEOMETRY`, `PRODUCT_MISMATCH`, `INVALID_APPLICATION`, or `UNSUPPORTED_APPLICATION_METHOD`; and `409 DUPLICATE_FIELD`, `FIELD_OWNERSHIP_CONFLICT`, `DUPLICATE_APPLICATION`, `APPLICATION_FIELD_CONFLICT`, `PROCESSING_CONFLICT`, `FIELD_CHANGED`, or `APPLICATION_CHANGED`. Signed portal setup can return `503 PORTAL_SAS_UNCONFIGURED`. See [assessment issues](https://docs.acreblitz.com/v2/errors#assessment-issue-codes) for unresolved conditions returned with HTTP 200.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](https://docs.acreblitz.com/v2/errors#http-error-catalog). Use the [error catalog and examples](https://docs.acreblitz.com/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

@@ -22,46 +22,128 @@
     }
   },
   "navigation": {
-    "tabs": [
+    "versions": [
       {
-        "tab": "Documentation",
-        "groups": [
+        "version": "V1",
+        "default": true,
+        "tabs": [
           {
-            "group": "Getting Started",
-            "pages": [
-              "index",
-              "quickstart",
-              "authentication"
+            "tab": "Documentation",
+            "groups": [
+              {
+                "group": "Getting Started",
+                "pages": [
+                  "index",
+                  "quickstart",
+                  "authentication"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "API Reference",
+            "groups": [
+              {
+                "group": "Overview",
+                "pages": [
+                  "api-reference/introduction"
+                ]
+              },
+              {
+                "group": "ESA Check",
+                "pages": [
+                  "api-reference/endpoint/esa-check"
+                ]
+              },
+              {
+                "group": "Field Processing",
+                "pages": [
+                  "api-reference/endpoint/process-field"
+                ]
+              },
+              {
+                "group": "Reports",
+                "pages": [
+                  "api-reference/endpoint/enlist-report",
+                  "api-reference/endpoint/runoff-report"
+                ]
+              }
             ]
           }
         ]
       },
       {
-        "tab": "API Reference",
-        "groups": [
+        "version": "V2",
+        "tabs": [
           {
-            "group": "Overview",
-            "pages": [
-              "api-reference/introduction"
+            "tab": "Documentation",
+            "groups": [
+              {
+                "group": "Getting started",
+                "pages": [
+                  "v2/index",
+                  "v2/quickstart",
+                  "v2/authentication"
+                ]
+              },
+              {
+                "group": "Integration guides",
+                "pages": [
+                  "v2/migration",
+                  "v2/errors",
+                  "v2/ai-agents"
+                ]
+              }
             ]
           },
           {
-            "group": "ESA Check",
-            "pages": [
-              "api-reference/endpoint/esa-check"
-            ]
-          },
-          {
-            "group": "Field Processing",
-            "pages": [
-              "api-reference/endpoint/process-field"
-            ]
-          },
-          {
-            "group": "Reports",
-            "pages": [
-              "api-reference/endpoint/enlist-report",
-              "api-reference/endpoint/runoff-report"
+            "tab": "API Reference",
+            "groups": [
+              {
+                "group": "Overview",
+                "pages": [
+                  "v2/api-reference/introduction"
+                ]
+              },
+              {
+                "group": "ESA checks",
+                "pages": [
+                  "v2/api-reference/endpoint/esa-check"
+                ]
+              },
+              {
+                "group": "Bulk checks",
+                "pages": [
+                  "v2/api-reference/endpoint/bulk-submit",
+                  "v2/api-reference/endpoint/bulk-status",
+                  "v2/api-reference/endpoint/bulk-results"
+                ]
+              },
+              {
+                "group": "Field and soil",
+                "pages": [
+                  "v2/api-reference/endpoint/soil-process",
+                  "v2/api-reference/endpoint/runoff-baseline",
+                  "v2/api-reference/endpoint/process-field",
+                  "v2/api-reference/endpoint/mitigations"
+                ]
+              },
+              {
+                "group": "Compliance reports",
+                "pages": [
+                  "v2/api-reference/endpoint/enlist-report",
+                  "v2/api-reference/endpoint/runoff-report"
+                ]
+              },
+              {
+                "group": "Portal and application controls",
+                "pages": [
+                  "v2/api-reference/endpoint/portal-access",
+                  "v2/api-reference/endpoint/portal-lock",
+                  "v2/api-reference/endpoint/group-portal-lock",
+                  "v2/api-reference/endpoint/drift-buffer"
+                ]
+              }
             ]
           }
         ]
@@ -92,5 +174,12 @@
     "socials": {
       "website": "https://www.acreblitz.com"
     }
+  },
+  "description": "ESA and PULA API documentation, examples, and error handling for AcreBlitz V1 and V2.",
+  "markdown": {
+    "instructions": [
+      "State which API version you are using. V1 uses https://esa.acreblitz.com/api/v1; V2 uses https://esa-v2.acreblitz.com/api/v2.",
+      "Read /llms.txt for links to both versions. For V2 bulk integration, read bulk submission, status, results, and /v2/errors before constructing requests."
+    ]
   }
 }

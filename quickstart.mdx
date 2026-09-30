@@ -189,7 +189,7 @@ The first thing to check is the `esa_required` field. If **none** of the product
 }
 ```
 
-When `esa_required` is `true`, the full PULA analysis is performed and the response includes a `field_id`, `application_event_id`, and a `mitigation_portal_url`.
+When `esa_required` is `true`, the full PULA analysis is performed and the response includes an `application_event_id` and a `mitigation_portal_url`.
 
 ```json Example Response — ESA Required
 {
@@ -197,7 +197,6 @@ When `esa_required` is `true`, the full PULA analysis is performed and the respo
   "esa_required": true,
   "account_id": "acct-98765",
   "provider_id": "your_provider_id",
-  "field_id": "f7a1b2c3-d4e5-6789-abcd-ef0123456789",
   "application_event_id": "a1b2c3d4-e5f6-7890-abcd-ef0123456789",
   "mitigations_required": true,
   "mitigation_portal_url": "https://acreblitz.com/esaportal/field?t=a2a73941e3872bdcd6aae3206060f19db3892aec67bfbef27a2d015b1bf98bc7",

@@ -1,0 +1,132 @@
+---
+title: "ESA check"
+description: "Assess ESA and PULA requirements for one pesticide application"
+api: "POST https://esa-v2.acreblitz.com/api/v2/esa-check"
+---
+
+Assess ESA and PULA requirements for one pesticide application.
+
+## Request
+
+<Snippet file="v2-application-inputs.mdx" />
+
+## Response
+
+`success` describes request handling. Read `compliance.status`, `processing_complete`, `soil`, `runoff`, `drift`, and `issues` for the assessment. `compliance.scope` is `requirements_and_gaps`; its `version` is the assessment format version, independent of the API URL version.
+
+Product results include `esa_required`, registration status, effective pests, and PULA limitations. For ESA-required checks, the response also includes an opaque `application_event_id` and a `mitigation_portal_url` when available.
+
+`mitigation_portal_url_expires_at` is the signed-link expiration in signed-link mode and null in token mode. `expires_at` describes the field portal's availability, which can have a different lifetime. Use the returned link unchanged.
+
+## Repeat a check
+
+The provider/account/application identity is reused. Resubmitting updates the saved assessment when ESA processing is required. A no-ESA early return does not update an existing saved application. A changed field boundary refreshes its derived data. Background soil enrichment requires a new check to refresh the assessment.
+
+The example response below shows selected fields only; values depend on product, field, and review state.
+
+<RequestExample>
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/esa-check' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "provider_id": "your-provider",
+  "account_id": "your-account",
+  "provider_field_id": "north-field",
+  "provider_group_id": "work-order-42",
+  "field_name": "North field",
+  "application_id": "north-application-2026-10-05",
+  "application_method": "Broadcast-Ground",
+  "application_date": "2026-10-05",
+  "field_boundary": {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -95.404,
+            43.102
+          ],
+          [
+            -95.392,
+            43.102
+          ],
+          [
+            -95.392,
+            43.11
+          ],
+          [
+            -95.404,
+            43.11
+          ],
+          [
+            -95.404,
+            43.102
+          ]
+        ]
+      ]
+    }
+  },
+  "products": [
+    {
+      "epa_number": "7969-500",
+      "product_name": "Liberty Ultra",
+      "rate": 32,
+      "rate_unit": "fl oz/ac",
+      "rate_unit_state": "L"
+    }
+  ],
+  "crop": [
+    "Corn"
+  ],
+  "pest": [
+    "Waterhemp"
+  ],
+  "gpa": 15,
+  "droplet_size": "VC",
+  "boom_height": "low",
+  "include_soil_analysis": true,
+  "include_mitigations": true
+}'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 — selected response fields
+{
+  "success": true,
+  "esa_required": true,
+  "account_id": "your-account",
+  "provider_id": "your-provider",
+  "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+  "compliance": {
+    "version": 1,
+    "scope": "requirements_and_gaps",
+    "calculated_at": "2026-10-05T14:00:00.000Z",
+    "processing_complete": true,
+    "status": "indeterminate",
+    "soil": {
+      "status": "reused"
+    },
+    "issues": [
+      {
+        "code": "DRIFT_CONDITIONS_UNVERIFIED",
+        "message": "Buffer placement and application weather have not been verified"
+      }
+    ]
+  }
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+Processing can return `409 DUPLICATE_FIELD`, `FIELD_OWNERSHIP_CONFLICT`, `DUPLICATE_APPLICATION`, `APPLICATION_FIELD_CONFLICT`, `PROCESSING_CONFLICT`, `FIELD_CHANGED`, or `APPLICATION_CHANGED`. Signed portal setup can return `503 PORTAL_SAS_UNCONFIGURED`. A workflow can also return `422 UNSUPPORTED_APPLICATION_METHOD`; HTTP input validation normally catches this first as `INVALID_REQUEST`. See [assessment issues](/v2/errors#assessment-issue-codes) for incomplete evidence returned with HTTP 200.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

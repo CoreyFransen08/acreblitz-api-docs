@@ -1,0 +1,135 @@
+---
+title: "Process a field"
+description: "Save a field with soil analysis and automatic runoff credits"
+api: "POST https://esa-v2.acreblitz.com/api/v2/process-field"
+---
+
+Save a field with soil analysis and automatic runoff credits.
+
+## Request
+
+<ParamField body="provider_id" type="string" required>
+  Your assigned provider identifier.
+</ParamField>
+
+<ParamField body="account_id" type="string" required>
+  Your account identifier.
+</ParamField>
+
+<ParamField body="provider_field_id" type="string" required>
+  Required external field identifier.
+</ParamField>
+
+<ParamField body="field_name" type="string" required>
+  Field name displayed in the portal and compliance reports.
+</ParamField>
+
+<ParamField body="field_boundary" type="object" required>
+  GeoJSON Feature with Polygon/MultiPolygon in EPSG:4326; uses single-check boundary validation.
+</ParamField>
+
+<ParamField body="year" type="integer">
+  Year for automatic runoff credits, 1900–2200; defaults to the current UTC year.
+</ParamField>
+
+<ParamField body="include_mitigation_options" type="boolean" default="false">
+  Include the EPA runoff option tree with selected measures.
+</ParamField>
+
+
+## Processing behavior
+
+This endpoint saves a field, its processed soil, and automatic annual runoff credits. It does not create an application or run a product-specific assessment. Soil must complete before this update is saved; soil failure leaves the existing field data intact.
+
+## Response
+
+The response includes your `provider_field_id`, `year`, portal link fields, `soil_data`, `counties`, `pulas`, `mitigations_applied`, `steps`, and `summary`. `mitigation_options` is null unless requested. `steps.soil.data.status` distinguishes `reused` from `fetched`; `fetched` can still reuse soil source data for the area.
+
+The example shows selected fields only.
+
+<RequestExample>
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/process-field' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "provider_id": "your-provider",
+  "account_id": "your-account",
+  "provider_field_id": "north-field",
+  "field_name": "North field",
+  "field_boundary": {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -95.404,
+            43.102
+          ],
+          [
+            -95.392,
+            43.102
+          ],
+          [
+            -95.392,
+            43.11
+          ],
+          [
+            -95.404,
+            43.11
+          ],
+          [
+            -95.404,
+            43.102
+          ]
+        ]
+      ]
+    }
+  },
+  "year": 2026,
+  "include_mitigation_options": true
+}'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 — selected response fields
+{
+  "success": true,
+  "provider_field_id": "north-field",
+  "year": 2026,
+  "steps": {
+    "spatial": {
+      "success": true
+    },
+    "soil": {
+      "success": true,
+      "data": {
+        "status": "reused"
+      }
+    },
+    "mitigations": {
+      "success": true
+    }
+  },
+  "summary": {
+    "pula_count": 0,
+    "soil_available": true,
+    "mitigations_applied_count": 2,
+    "total_points": 3
+  }
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+Field processing can return `409 DUPLICATE_FIELD`, `FIELD_OWNERSHIP_CONFLICT`, `PROCESSING_CONFLICT`, or `FIELD_CHANGED`, and `503 PORTAL_SAS_UNCONFIGURED` when signed portal links are unavailable.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

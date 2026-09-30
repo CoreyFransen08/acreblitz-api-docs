@@ -1,0 +1,71 @@
+---
+title: "Get bulk results"
+description: "Read paginated results in original submission order"
+api: "GET https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/{job_id}/results"
+---
+
+Read paginated results in original submission order.
+
+<ParamField path="job_id" type="string" required>
+  Job identifier returned by submission.
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Zero-based offset, 0–100.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="20">
+  Page size, 1–50.
+</ParamField>
+
+
+## Item results
+
+Items remain in submission order (`item_index` starts at zero). Each has `application_id`, `provider_field_id`, `status`, `attempts`, `started_at`, `completed_at`, `result`, and `error`. New pending items have null result/error; queued items awaiting a retry may retain an error from an earlier attempt. Starting the next attempt clears that error. Treat `status` as authoritative. Succeeded items contain the same response structure as a single check. Failed items contain `{ code, message, retryable }` under `error`.
+
+Read `result.compliance` for succeeded checks; item success does not imply compliance. Follow `next_offset` until it is null. You can read results before the job completes, but queued/processing items are not final. Save the results you need before the 30-day retention window ends. Responses use `Cache-Control: no-store`.
+
+The example below shows one pending item on the first page.
+
+<RequestExample>
+
+```bash cURL
+curl --request GET 'https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001/results?offset=0&limit=1' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY"
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "job_id": "019953f8-8c00-7000-8000-000000000001",
+  "total_items": 2,
+  "offset": 0,
+  "limit": 1,
+  "next_offset": 1,
+  "items": [
+    {
+      "item_index": 0,
+      "application_id": "north-application-2026-10-05",
+      "provider_field_id": "north-field",
+      "status": "queued",
+      "attempts": 0,
+      "result": null,
+      "error": null,
+      "started_at": null,
+      "completed_at": null
+    }
+  ]
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+An invalid job UUID, offset, or limit returns `422 INVALID_REQUEST`. An unknown, expired, or other-provider job returns `404 BULK_JOB_NOT_FOUND`. HTTP 200 can contain failed items; see [bulk item failures and retry examples](/v2/errors#bulk-item-failures).
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

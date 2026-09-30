@@ -1,0 +1,39 @@
+---
+title: "API overview"
+description: "All V2 endpoints and their processing behavior"
+---
+
+Base URL: `https://esa-v2.acreblitz.com`. Every endpoint requires `X-API-Key`.
+
+| Method | Route | Purpose |
+|---|---|---|
+| POST | `/api/v2/esa-check` | Assess one application synchronously. |
+| POST | `/api/v2/esa-check/bulk` | Accept a bulk job. |
+| GET | `/api/v2/esa-check/bulk/{job_id}` | Read job status and item counts. |
+| GET | `/api/v2/esa-check/bulk/{job_id}/results` | Page through per-field results. |
+| POST | `/api/v2/soil/process` | Analyze soil for a field boundary. |
+| POST | `/api/v2/field/runoff-baseline` | Calculate available automatic runoff credits. |
+| POST | `/api/v2/process-field` | Process a field without creating an application. |
+| GET | `/api/v2/mitigations/{mitigation_type}` | Read EPA runoff mitigation options. |
+| GET | `/api/v2/fields/{provider_field_id}/reports/enlist` | Download an Enlist compliance report. |
+| GET | `/api/v2/fields/{provider_field_id}/reports/runoff` | Download a runoff compliance report. |
+| POST | `/api/v2/applications/{application_event_id}/portal-access` | Issue an expiring portal link. |
+| PUT | `/api/v2/applications/{application_event_id}/portal-lock` | Lock or unlock one application's portal changes. |
+| PUT | `/api/v2/groups/{provider_group_id}/portal-lock` | Lock or unlock an account's application group. |
+| POST | `/api/v2/applications/{application_event_id}/drift-buffer/compute` | Refresh the assessment using application-time weather. |
+
+## Processing and persistence
+
+Single checks return a response after required processing. When ESA is required, the saved field/application and response are updated together. No-ESA early returns do not create or update those records.
+
+Bulk intake accepts a job; it does not finish the checks in the intake response. Each processed field uses the same assessment workflow as a single check. Job completion and compliance are separate outcomes. Results remain available for **30 days after the job completes**; save the results you need.
+
+Standalone soil and runoff baseline requests do not save a field/application. Field processing saves a field and automatic runoff credits without creating an application.
+
+## Response and request conventions
+
+JSON requests use `Content-Type: application/json`. Field boundaries use GeoJSON in EPSG:4326. Application identifiers belong to your provider and account. Treat returned job and application-event identifiers as opaque API references.
+
+Single checks can need up to the service's request deadline (90 seconds by default). Client/proxy timeouts should allow the configured deadline. Bulk completion depends on queue wait and field processing; no fixed one-minute job completion time is guaranteed.
+
+See [error handling](/v2/errors) and [authentication](/v2/authentication).

@@ -1,0 +1,90 @@
+---
+title: "Analyze soil"
+description: "Analyze hydrologic soil groups and slope for a field boundary"
+api: "POST https://esa-v2.acreblitz.com/api/v2/soil/process"
+---
+
+Analyze hydrologic soil groups and slope for a field boundary.
+
+<ParamField body="provider_id" type="string" required>
+  Your assigned provider identifier, matching the API key.
+</ParamField>
+
+<ParamField body="field_boundary" type="object" required>
+  GeoJSON Feature with Polygon or MultiPolygon in EPSG:4326. The single-check field-boundary limits apply.
+</ParamField>
+
+
+## Response
+
+The response contains `soil_data` (a GeoJSON FeatureCollection clipped to the field boundary), `dominant_hydgrpdcd`, `total_area_sqm`, `hydgrpdcd_analysis`, `weighted_avg_slopegradwta`, and `musym_analysis`. Missing hydrologic group or slope attributes can be null.
+
+This endpoint does not save a field/application. Soil may be reused across requests for the same area. The example shows summary fields; the complete response also includes field-boundary data and map-unit analysis.
+
+<RequestExample>
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/soil/process' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "provider_id": "your-provider",
+  "field_boundary": {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -95.404,
+            43.102
+          ],
+          [
+            -95.392,
+            43.102
+          ],
+          [
+            -95.392,
+            43.11
+          ],
+          [
+            -95.404,
+            43.11
+          ],
+          [
+            -95.404,
+            43.102
+          ]
+        ]
+      ]
+    }
+  }
+}'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 — selected response fields
+{
+  "dominant_hydgrpdcd": "B",
+  "total_area_sqm": 865700.0,
+  "hydgrpdcd_analysis": {
+    "B": {
+      "area_sqm": 865700.0,
+      "percentage": 100
+    }
+  },
+  "weighted_avg_slopegradwta": 2.1
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+Invalid field boundaries return `422 INVALID_REQUEST`. A dependency failure can return `503 REQUEST_FAILED`; capacity and deadline errors also apply.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

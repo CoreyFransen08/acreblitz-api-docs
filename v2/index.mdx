@@ -1,0 +1,37 @@
+---
+title: "ESA API V2"
+description: "Synchronous ESA assessments, bulk jobs, soil analysis, and portal controls"
+---
+
+Use V2 to check one pesticide application or submit a group of fields for asynchronous processing. You receive PULA requirements, runoff and drift assessments, and portal links for review.
+
+| Version | Base URL | Route prefix |
+|---|---|---|
+| V1 | `https://esa.acreblitz.com` | `/api/v1` |
+| V2 | `https://esa-v2.acreblitz.com` | `/api/v2` |
+
+Select **V1** or **V2** in the version dropdown. Existing V1 documentation and links remain available. V2 uses a separate hostname; confirm V2 access with AcreBlitz before switching a production integration.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/v2/quickstart">Run a single check and inspect the assessment.</Card>
+  <Card title="Bulk checks" icon="layer-group" href="/v2/api-reference/endpoint/bulk-submit">Submit up to 100 fields with shared products and crops.</Card>
+  <Card title="Migrate from V1" icon="arrow-right" href="/v2/migration">Review the host, validation, and response changes.</Card>
+  <Card title="API reference" icon="code" href="/v2/api-reference/introduction">Browse every V2 endpoint.</Card>
+</CardGroup>
+
+## Interpret an assessment
+
+An HTTP 200 response or `success: true` means the request was handled. Read `compliance.status`, `compliance.processing_complete`, and `compliance.issues` before making a decision. A completed calculation can remain `indeterminate` when applicability, weather, or field conditions need review.
+
+| Status | Meaning |
+|---|---|
+| `met` | Evaluated requirements are met within the assessment's scope. |
+| `not_met` | A verified requirement has a shortfall. |
+| `not_applicable` | No applicable requirement was established for the verified inputs. |
+| `indeterminate` | Evidence, processing, or verification is incomplete. |
+
+An ESA assessment does not grant unrestricted application clearance. Review the product label, returned PULA text, and unresolved conditions.
+
+## Soil reuse and refreshed results
+
+V2 reuses soil when the field boundary and processing version match. A changed field boundary triggers fresh processing. Background soil enrichment does not rewrite a returned assessment; resubmit the same application to refresh it. Bulk polling responses use `Cache-Control: no-store`. Do not cache job status as a final assessment.

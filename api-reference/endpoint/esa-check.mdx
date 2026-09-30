@@ -6,6 +6,49 @@ description: Check ESA/PULA restrictions for a pesticide application
 
 Check if a field has active Pesticide Use Limitation Areas (PULAs) for the products in your tank mix. Returns detailed limitation data and a white-labeled portal URL for mitigation selection.
 
+<RequestExample>
+
+```bash cURL
+curl -X POST https://esa.acreblitz.com/api/v1/esa-check \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $ACREBLITZ_API_KEY" \
+  -d '{
+    "account_id": "acct-98765",
+    "provider_id": "your_provider_id",
+    "field_name": "South Field 25",
+    "application_id": "job-2024-06-15-002",
+    "provider_field_id": "field-south-25",
+    "application_method": "ground",
+    "application_date": "2024-06-15",
+    "field_boundary": {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-95.284265, 42.263233],
+          [-95.284470, 42.254180],
+          [-95.267536, 42.254063],
+          [-95.267341, 42.263116],
+          [-95.284265, 42.263233]
+        ]]
+      }
+    },
+    "products": [
+      {
+        "epa_number": "62719-442",
+        "product_name": "INTREPID 2F",
+        "rate": 16.0,
+        "rate_unit": "fl oz/acre"
+      }
+    ],
+    "crop": ["corn"],
+    "pest": ["corn borer"],
+    "gpa": 10
+  }'
+```
+
+</RequestExample>
+
 ## Request Body
 
 ### Required Fields
@@ -142,10 +185,6 @@ Check if a field has active Pesticide Use Limitation Areas (PULAs) for the produ
   The provider ID from your request.
 </ResponseField>
 
-<ResponseField name="field_id" type="string">
-  Internal AcreBlitz field UUID. Only present when `esa_required` is `true`.
-</ResponseField>
-
 <ResponseField name="application_event_id" type="string">
   Internal AcreBlitz application event UUID. Only present when `esa_required` is `true`.
 </ResponseField>
@@ -222,7 +261,6 @@ When one or more products have ESA label language and the field intersects activ
   "esa_required": true,
   "account_id": "acct-98765",
   "provider_id": "your_provider_id",
-  "field_id": "f7a1b2c3-d4e5-6789-abcd-ef0123456789",
   "application_event_id": "a1b2c3d4-e5f6-7890-abcd-ef0123456789",
   "mitigations_required": true,
   "mitigation_portal_url": "https://acreblitz.com/esaportal/field?t=a2a73941e3872bdcd6aae3206060f19db3892aec67bfbef27a2d015b1bf98bc7",
@@ -274,7 +312,6 @@ When no products in the tank mix have ESA label language, the API returns early 
   "esa_required": false,
   "account_id": "acct-98765",
   "provider_id": "your_provider_id",
-  "field_id": null,
   "application_event_id": null,
   "mitigations_required": null,
   "mitigation_portal_url": null,

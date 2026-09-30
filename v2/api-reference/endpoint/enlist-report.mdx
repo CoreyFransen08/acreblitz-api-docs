@@ -1,0 +1,45 @@
+---
+title: "Enlist compliance report"
+description: "Download the Enlist compliance report for a provider-owned field"
+api: "GET https://esa-v2.acreblitz.com/api/v2/fields/{provider_field_id}/reports/enlist"
+---
+
+Download the Enlist compliance report for a provider-owned field.
+
+<ParamField path="provider_field_id" type="string" required>
+  Your field identifier from the single check, bulk field entry, or field-processing request.
+</ParamField>
+
+<ParamField query="year" type="integer">
+  Optional report year, 1900–2200.
+</ParamField>
+
+
+## Response
+
+A successful request returns **200** with `Content-Type: application/pdf` and an attachment filename. Save the response bytes as a `.pdf` file.
+
+```http 200
+Content-Type: application/pdf
+Content-Disposition: attachment; filename=mitigation-report.pdf
+```
+
+The field must belong to your provider and have an active, unexpired, unarchived portal. An unknown or unavailable field returns 404; an ambiguous field identifier returns 409. Dependent report failures can return 502. The report uses the field's current saved data; the download request does not rerun the ESA check.
+
+The example requests the 2026 report.
+
+<RequestExample>
+
+```bash cURL
+curl --request GET 'https://esa-v2.acreblitz.com/api/v2/fields/north-field/reports/enlist?year=2026' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --output enlist-report.pdf
+```
+
+</RequestExample>
+
+## Errors
+
+Report errors are `404 FIELD_NOT_FOUND`, `409 DUPLICATE_FIELD`, `502 INVALID_REPORT`, `503 PORTAL_SERVICE_UNCONFIGURED` or `PORTAL_SAS_UNCONFIGURED`, and `PORTAL_REQUEST_FAILED` with HTTP 400, 403, 404, 422, or 502. Error bodies use JSON even though successful responses are PDFs.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

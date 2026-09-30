@@ -1,0 +1,21 @@
+---
+title: "Authentication"
+description: "Authenticate V2 requests with your provider API key"
+---
+
+Send `X-API-Key` on every V2 endpoint. Keep the key in your backend environment or secret manager.
+
+```bash
+export ACREBLITZ_API_KEY='your_api_key_here'
+```
+
+```bash cURL
+curl 'https://esa-v2.acreblitz.com/api/v2/mitigations/epa_runoff' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY"
+```
+
+Your key establishes provider ownership. When the request includes `provider_id`, it must match that provider. Job, field, application, and group operations are limited to resources belonging to your provider.
+
+Active, unexpired keys can use all V2 endpoints; no separate bulk endpoint permission is required. A development key only works with its development environment. Contact [support](mailto:support@acreblitz.com) to obtain the appropriate key.
+
+See [error handling](/v2/errors) for 401, 403, 429, and retry behavior.

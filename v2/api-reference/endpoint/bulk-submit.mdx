@@ -1,0 +1,324 @@
+---
+title: "Submit bulk checks"
+description: "Submit multiple applications with shared or per-field products and crops"
+api: "POST https://esa-v2.acreblitz.com/api/v2/esa-check/bulk"
+---
+
+Submit one job containing 1–100 field applications. Put values shared by your fields at the top of the request. Inside `fields[]`, supply each field's identity and boundary, plus any values that differ for that field.
+
+**A field value replaces the matching top-level value for that field only.** Other fields still use the top-level default. Products and crops follow the same rule: arrays replace the entire array; they never merge.
+
+## Request
+
+<ParamField header="Idempotency-Key" type="string">
+  Optional, strongly recommended. One to 200 characters. Scoped to your provider/account; reuse it only with identical effective inputs.
+</ParamField>
+
+<ParamField body="provider_id" type="string" required>
+  Your assigned provider, matching the key.
+</ParamField>
+
+<ParamField body="account_id" type="string" required>
+  Your account identifier.
+</ParamField>
+
+<ParamField body="provider_group_id" type="string" required>
+  Required nonempty work-order/job identifier, up to 200 characters. Shared by every field.
+</ParamField>
+
+<ParamField body="fields" type="object[]" required>
+  One to 100 field entries. Each requires `application_id`, `field_name`, and `field_boundary`; `provider_field_id` is optional.
+</ParamField>
+
+<ParamField body="products" type="object[]">
+  Default products; each field must have effective products.
+</ParamField>
+
+<ParamField body="crop" type="string[]">
+  Default crops; each field must have an effective crop array. An explicit empty array is valid.
+</ParamField>
+
+<ParamField body="pest" type="string[]">
+  Default pests, unless replaced by the field or product.
+</ParamField>
+
+<ParamField body="application_date" type="string">
+  Default `YYYY-MM-DD` application date.
+</ParamField>
+
+<ParamField body="application_method" type="string">
+  Default supported method.
+</ParamField>
+
+<ParamField body="gpa" type="number">
+  Default positive spray gallons per acre; nullable.
+</ParamField>
+
+<ParamField body="droplet_size" type="string">
+  Default supported droplet category/code; nullable.
+</ParamField>
+
+<ParamField body="boom_height" type="string">
+  Default `low` or `high`; nullable.
+</ParamField>
+
+<ParamField body="user_email" type="string">
+  Default valid email; nullable.
+</ParamField>
+
+<ParamField body="include_geometry" type="boolean" default="false">
+  Top-level response option applied to every field.
+</ParamField>
+
+<ParamField body="include_soil_analysis" type="boolean" default="false">
+  Top-level response option applied to every field.
+</ParamField>
+
+<ParamField body="include_mitigations" type="boolean" default="false">
+  Top-level response option applied to every field.
+</ParamField>
+
+<ParamField body="buffer_distance_miles" type="number" default="1">
+  Top-level PULA search buffer, clamped to 0–10 miles.
+</ParamField>
+
+## Where each value belongs
+
+| Location | Properties | Rule |
+|---|---|---|
+| Top level only | `provider_id`, `account_id`, `provider_group_id` | Required once; apply to every field. You cannot mix providers, accounts, or groups within one job. |
+| Top level only | `include_geometry`, `include_soil_analysis`, `include_mitigations`, `buffer_distance_miles` | Apply to every field. Defaults are `false`, `false`, `false`, and `1`. |
+| Inside each field only | `application_id`, `field_name`, `field_boundary` | Required in every field entry. |
+| Inside each field only | `provider_field_id` | Optional. Omitted or `null` uses that field's `application_id`. |
+| Top level and/or inside a field | `products`, `crop`, `application_date`, `application_method` | Each field needs a value, either inherited or supplied on that field. |
+| Top level and/or inside a field | `pest` | Default pests for products without their own `pest` list. |
+| Top level and/or inside a field | `gpa`, `droplet_size`, `boom_height`, `user_email` | Optional. A field can inherit, replace, or explicitly clear a default with `null`. |
+
+You may omit all shared application settings and specify them separately in every field. You may also mix shared defaults and overrides in the same request. See [single-check inputs](/v2/api-reference/endpoint/esa-check) for allowed methods, droplet sizes, product properties, and field boundary limits.
+
+## How defaults and overrides resolve
+
+For each field, the API starts with the top-level defaults, replaces each property explicitly supplied by that field, then validates the resulting application independently.
+
+| What you send inside a field | Effective value for that field |
+|---|---|
+| Omit `products` | Use the complete top-level `products` array. |
+| Supply `products` | Use only that field's complete product array. Products are not matched or merged by EPA number or array position. |
+| Omit `crop` | Use the top-level crop array. |
+| Supply `crop: ["Soybeans"]` | Replace every top-level crop with `Soybeans`. |
+| Supply `crop: []` | Use an empty crop array; do not inherit. This is valid input. |
+| Omit `gpa` | Use the top-level GPA, if present. |
+| Supply `gpa: 20` | Use 20 for this field. |
+| Supply `gpa: null` | Clear this field's GPA even if the top level specifies one. The same rule applies to droplet size, boom height, and email. |
+| Supply `products: []`, `pest: []`, or `crop: null` | Reject the entire submission with `422 INVALID_REQUEST`. |
+
+**To change just one product's rate, send the full desired product array for that field**, including the other products you want retained. Each product needs its required properties (`product_name`, `rate`, and `rate_unit`); a partial product such as `{ "rate": 28 }` is invalid.
+
+### Pest precedence
+
+Pests have one additional level of precedence: **product `pest` → field `pest` → top-level `pest`**. Product pest lists stay attached to their product even when the product array is inherited. A field pest override affects only products without their own pest list. Every product must end up with a nonempty pest list.
+
+### Worked example
+
+The complete cURL request on this page submits two fields using Liberty Ultra with `Broadcast-Ground`:
+
+North supplies no application-setting overrides, so every shared default applies. South supplies a complete replacement product array, replaces `crop` and `gpa`, and clears `boom_height` with `null`. South still inherits the date, method, pests, and droplet size.
+
+| Setting | Shared default and North result | South result |
+|---|---|---|
+| Products | Liberty Ultra, 32 fl oz/ac | Liberty Ultra, 28 fl oz/ac (replaced) |
+| Crop | `Corn` | `Soybeans` (replaced) |
+| Pests | `Waterhemp` | `Waterhemp` (inherited) |
+| Method | `Broadcast-Ground` | `Broadcast-Ground` (inherited) |
+| GPA | `15` | `20` (replaced) |
+| Droplet size | `VC` | `VC` (inherited) |
+| Boom height | `low` | Unspecified (`null` clears the default) |
+
+Clearing an application setting does not establish that it is irrelevant to compliance. Missing information can leave the assessment `indeterminate`.
+
+## Validation before acceptance
+
+All fields are validated before the API accepts a job. **One invalid field rejects the entire submission with `422 INVALID_REQUEST`; no job is created.** This differs from processing failures after acceptance, where some items can succeed and others fail.
+
+- Unknown top-level and field properties are rejected. For example, `fields[0].include_geometry` is invalid because that option belongs at the top level.
+- Supplied defaults must themselves be valid, even if every field overrides them. Omit an unused default instead of sending an invalid placeholder.
+- `application_id` values and effective `provider_field_id` values must be unique within the submission.
+- Each field boundary may contain at most 5,000 coordinate positions across all its rings. The total request body limit is 5 MB.
+
+For example, a duplicate application ID on the second field returns:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "details": [{
+      "code": "custom",
+      "path": ["fields", 1, "application_id"],
+      "message": "Duplicate application_id in bulk submission"
+    }]
+  }
+}
+```
+
+Issue paths use zero-based array indexes, so `fields[1]` is the second field. Correct the indicated input and resubmit. See [validation examples](/v2/errors#validation-examples) for missing group IDs, pests, and unknown properties.
+
+## Accepted response and polling
+
+The response is **202 Accepted**, including on an idempotent replay. It includes `Location` (the status path), `Retry-After: 5`, and `Cache-Control: no-store`. A replay can return an already-terminal job status. Both URLs are relative to the V2 hostname.
+
+Poll [job status](/v2/api-reference/endpoint/bulk-status) and fetch [results](/v2/api-reference/endpoint/bulk-results). A job with some failed items can finish as `completed_with_errors`. A succeeded item can still contain an indeterminate or unmet compliance assessment.
+
+## Idempotency and retention
+
+The same key and effective input return the existing job with `replayed: true`. Changing inputs returns `409 IDEMPOTENCY_CONFLICT`. Without the header, each accepted submission creates a new job. Jobs and replay keys expire 30 days after completion; after expiration, the same key can create a new job.
+
+Split larger submissions into jobs of at most 100 fields. They may share `provider_group_id`, but each job needs its own idempotency key. A full backlog returns `429 BULK_BACKLOG_EXCEEDED`.
+
+<RequestExample>
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/esa-check/bulk' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Idempotency-Key: work-order-42-first-pass' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "provider_id": "your-provider",
+  "account_id": "your-account",
+  "provider_group_id": "work-order-42",
+  "application_method": "Broadcast-Ground",
+  "application_date": "2026-10-05",
+  "products": [
+    {
+      "epa_number": "7969-500",
+      "product_name": "Liberty Ultra",
+      "rate": 32,
+      "rate_unit": "fl oz/ac",
+      "rate_unit_state": "L"
+    }
+  ],
+  "crop": [
+    "Corn"
+  ],
+  "pest": [
+    "Waterhemp"
+  ],
+  "gpa": 15,
+  "droplet_size": "VC",
+  "boom_height": "low",
+  "include_soil_analysis": true,
+  "include_mitigations": true,
+  "fields": [
+    {
+      "application_id": "north-application-2026-10-05",
+      "provider_field_id": "north-field",
+      "field_name": "North field",
+      "field_boundary": {
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -95.404,
+                43.102
+              ],
+              [
+                -95.392,
+                43.102
+              ],
+              [
+                -95.392,
+                43.11
+              ],
+              [
+                -95.404,
+                43.11
+              ],
+              [
+                -95.404,
+                43.102
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "application_id": "south-application-2026-10-05",
+      "provider_field_id": "south-field",
+      "field_name": "South field",
+      "field_boundary": {
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -95.404,
+                43.092
+              ],
+              [
+                -95.392,
+                43.092
+              ],
+              [
+                -95.392,
+                43.1
+              ],
+              [
+                -95.404,
+                43.1
+              ],
+              [
+                -95.404,
+                43.092
+              ]
+            ]
+          ]
+        }
+      },
+      "crop": [
+        "Soybeans"
+      ],
+      "gpa": 20,
+      "boom_height": null,
+      "products": [
+        {
+          "epa_number": "7969-500",
+          "product_name": "Liberty Ultra",
+          "rate": 28,
+          "rate_unit": "fl oz/ac",
+          "rate_unit_state": "L"
+        }
+      ]
+    }
+  ]
+}'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 202
+{
+  "success": true,
+  "job_id": "019953f8-8c00-7000-8000-000000000001",
+  "status": "queued",
+  "total_items": 2,
+  "replayed": false,
+  "status_url": "/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001",
+  "results_url": "/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001/results"
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+Submission-specific errors are `409 IDEMPOTENCY_CONFLICT` and `429 BULK_BACKLOG_EXCEEDED`. Invalid defaults, overrides, duplicate identities, group IDs, or idempotency headers return `422 INVALID_REQUEST`. No job is created for a validation error.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

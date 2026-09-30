@@ -1,0 +1,100 @@
+---
+title: "Quickstart"
+description: "Make a V2 check and submit your first bulk job"
+---
+
+## Send one application
+
+Set `ACREBLITZ_API_KEY` on your backend, replace the provider/account/field identifiers, and submit a valid field boundary. This example uses Liberty Ultra with `Broadcast-Ground`.
+
+<RequestExample>
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/esa-check' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "provider_id": "your-provider",
+  "account_id": "your-account",
+  "provider_field_id": "north-field",
+  "provider_group_id": "work-order-42",
+  "field_name": "North field",
+  "application_id": "north-application-2026-10-05",
+  "application_method": "Broadcast-Ground",
+  "application_date": "2026-10-05",
+  "field_boundary": {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -95.404,
+            43.102
+          ],
+          [
+            -95.392,
+            43.102
+          ],
+          [
+            -95.392,
+            43.11
+          ],
+          [
+            -95.404,
+            43.11
+          ],
+          [
+            -95.404,
+            43.102
+          ]
+        ]
+      ]
+    }
+  },
+  "products": [
+    {
+      "epa_number": "7969-500",
+      "product_name": "Liberty Ultra",
+      "rate": 32,
+      "rate_unit": "fl oz/ac",
+      "rate_unit_state": "L"
+    }
+  ],
+  "crop": [
+    "Corn"
+  ],
+  "pest": [
+    "Waterhemp"
+  ],
+  "gpa": 15,
+  "droplet_size": "VC",
+  "boom_height": "low",
+  "include_soil_analysis": true,
+  "include_mitigations": true
+}'
+```
+
+</RequestExample>
+
+## Inspect the result
+
+Read `compliance.status`, `processing_complete`, and `issues`. A successful request can have unresolved compliance. Keep the returned `application_event_id` as an opaque reference for application-time checks and portal controls. Open `mitigation_portal_url` when one is returned; use the entire URL unchanged.
+
+If `esa_required` is false, inspect the issues before treating the result as not applicable. Unknown products can produce an indeterminate assessment. The no-ESA early return does not create or update a saved field/application.
+
+## Check multiple fields
+
+Use [Submit bulk checks](/v2/api-reference/endpoint/bulk-submit) to define common products, crops, pests, method, and date once. Each field can replace those settings independently. A bulk submission requires `provider_group_id` and returns **202 Accepted** with a `job_id`.
+
+Poll the returned `status_url`, then page through `results_url`. These URLs are relative to `https://esa-v2.acreblitz.com`. Preserve your `Idempotency-Key` when retrying the same submission.
+
+A succeeded bulk item means its check returned a result. Inspect that result's compliance, even when the overall job is `completed`.
+
+## Continue the workflow
+
+- [Download compliance reports](/v2/api-reference/endpoint/runoff-report) using your `provider_field_id`.
+- [Issue a portal link](/v2/api-reference/endpoint/portal-access) for one application.
+- [Lock portal changes](/v2/api-reference/endpoint/portal-lock) when your review is complete.
+- [Compute application-time drift buffers](/v2/api-reference/endpoint/drift-buffer) with current weather inputs.

@@ -1,0 +1,132 @@
+---
+title: "Compute application-time drift buffers"
+description: "Refresh an application assessment with current wind and application setup"
+api: "POST https://esa-v2.acreblitz.com/api/v2/applications/{application_event_id}/drift-buffer/compute"
+---
+
+Refresh an application assessment with current wind and application setup.
+
+## Request
+
+<ParamField path="application_event_id" type="string" required>
+  Opaque application-event reference from a previous ESA check.
+</ParamField>
+
+<ParamField body="wind_direction_deg" type="number" required>
+  Wind direction in degrees, greater than or equal to 0 and less than 360.
+</ParamField>
+
+<ParamField body="wind_speed_mph" type="number" required>
+  Wind speed, 0–80 mph.
+</ParamField>
+
+<ParamField body="temperature_f" type="number">
+  Optional observed temperature, -100–200 degrees Fahrenheit; nullable.
+</ParamField>
+
+<ParamField body="humidity_percent" type="number">
+  Optional observed humidity, 0–100; nullable.
+</ParamField>
+
+<ParamField body="application_method" type="string">
+  Optional supported method; otherwise use the saved method.
+</ParamField>
+
+<ParamField body="droplet_size" type="string">
+  Optional supported category/code; nullable. An omitted value uses the saved value; explicit null clears it.
+</ParamField>
+
+<ParamField body="boom_height" type="string">
+  Optional `low` or `high`; nullable. An omitted value uses the saved value; explicit null clears it.
+</ParamField>
+
+<ParamField body="gpa" type="number">
+  Optional positive spray gallons per acre; nullable. An omitted value uses the saved value; explicit null clears it.
+</ParamField>
+
+<ParamField body="rate_updates" type="object[]">
+  Up to 100 rate changes. Each requires `product_index` (zero-based), `epa_number`, nonnegative `rate`, and nonempty `rate_unit`; optional `rate_unit_state` and positive `row_spacing_inches`. The index and registration must match the saved product.
+</ParamField>
+
+<ParamField body="geometry" type="string">
+  `none`, `buffer`, `treatable`, or `both`; defaults to `none`.
+</ParamField>
+
+## Assessment behavior
+
+The endpoint resolves your saved application, applies current weather/setup inputs and rate changes, and returns a refreshed check plus `application_time`. Weather and the assessment are saved for that application. It checks the application revision; conflicting changes return 409.
+
+`application_time` includes submitted inputs, effective rates, reductions, manual mitigation claims, feature scope, feature counts, per-edge buffers, and product-specific buffer details. Requested field-boundary output is returned under `application_time.geometry` and is not retained in the saved assessment snapshot.
+
+The returned `compliance.status` is authoritative for this assessment. Manual claims and conditions that cannot be verified remain explicit issues; a calculated buffer alone is not application clearance. Protected features are read for this request so new nearby features can affect the result.
+
+The example shows selected response fields.
+
+<RequestExample>
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/applications/019953f8-8c00-7000-8000-000000000002/drift-buffer/compute' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "wind_direction_deg": 180,
+  "wind_speed_mph": 8,
+  "temperature_f": 72,
+  "humidity_percent": 55,
+  "application_method": "Broadcast-Ground",
+  "droplet_size": "VC",
+  "boom_height": "low",
+  "gpa": 15,
+  "rate_updates": [
+    {
+      "product_index": 0,
+      "epa_number": "7969-500",
+      "rate": 28,
+      "rate_unit": "fl oz/ac",
+      "rate_unit_state": "L"
+    }
+  ],
+  "geometry": "both"
+}'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 — selected response fields
+{
+  "success": true,
+  "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+  "application_time": {
+    "checked_at": "2026-10-05T14:10:00.000Z",
+    "status": "indeterminate",
+    "feature_scope": "global_only",
+    "non_managed_feature_count": 0,
+    "exclusion_feature_count": 0,
+    "inputs": {
+      "wind_direction_deg": 180,
+      "wind_speed_mph": 8,
+      "temperature_f": 72,
+      "humidity_percent": 55,
+      "application_method": "Broadcast-Ground",
+      "droplet_size": "very_coarse",
+      "boom_height": "low",
+      "gpa": 15
+    }
+  },
+  "compliance": {
+    "version": 1,
+    "scope": "requirements_and_gaps",
+    "status": "indeterminate"
+  }
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+Endpoint-specific errors include `404 APPLICATION_NOT_FOUND`; `422 NO_FIELD_GEOMETRY`, `PRODUCT_MISMATCH`, `INVALID_APPLICATION`, or `UNSUPPORTED_APPLICATION_METHOD`; and `409 DUPLICATE_FIELD`, `FIELD_OWNERSHIP_CONFLICT`, `DUPLICATE_APPLICATION`, `APPLICATION_FIELD_CONFLICT`, `PROCESSING_CONFLICT`, `FIELD_CHANGED`, or `APPLICATION_CHANGED`. Signed portal setup can return `503 PORTAL_SAS_UNCONFIGURED`. See [assessment issues](/v2/errors#assessment-issue-codes) for unresolved conditions returned with HTTP 200.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

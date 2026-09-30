@@ -1,0 +1,54 @@
+---
+title: "Set application portal lock"
+description: "Lock or unlock portal mitigation changes for one application"
+api: "PUT https://esa-v2.acreblitz.com/api/v2/applications/{application_event_id}/portal-lock"
+---
+
+Lock or unlock portal mitigation changes for one application.
+
+<ParamField path="application_event_id" type="string" required>
+  Application-event reference returned by the check.
+</ParamField>
+
+<ParamField body="locked" type="boolean" required>
+  Use true to lock mitigation changes or false to unlock them.
+</ParamField>
+
+
+## Lock behavior
+
+The lock covers this application's mitigation writes and its shared field-year runoff selections. Reads and compliance report downloads remain available. Repeating a lock preserves the original `portal_locked_at` timestamp; unlocking returns null for that timestamp.
+
+Applications sharing the same field/year share runoff selections. A lock on a sibling application can therefore keep those shared runoff writes locked even after this application is unlocked.
+
+<RequestExample>
+
+```bash cURL
+curl --request PUT 'https://esa-v2.acreblitz.com/api/v2/applications/019953f8-8c00-7000-8000-000000000002/portal-lock' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "locked": true
+}'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+  "locked": true,
+  "portal_locked_at": "2026-10-05T14:05:00.000Z"
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+An absent or other-provider application returns `404 APPLICATION_NOT_FOUND`. A missing/non-boolean `locked` value or malformed application UUID returns `422 INVALID_REQUEST`.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

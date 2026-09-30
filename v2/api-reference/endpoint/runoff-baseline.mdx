@@ -1,0 +1,86 @@
+---
+title: "Runoff baseline"
+description: "Calculate automatic runoff mitigation credits without saving a field"
+api: "POST https://esa-v2.acreblitz.com/api/v2/field/runoff-baseline"
+---
+
+Calculate automatic runoff mitigation credits without saving a field.
+
+<ParamField body="field_boundary" type="object" required>
+  A GeoJSON Feature or bare Polygon/MultiPolygon in EPSG:4326. A FeatureCollection with exactly one field is also accepted. A JSON string containing one supported value is accepted.
+</ParamField>
+
+
+## Response
+
+`baseline_points` is the sum of `auto_credits`. Each credit includes `sub_option_id`, `label`, `points`, and `source` (`always`, `slope`, `soil`, or `county`). The response also includes `counties`, a `soil_data` summary, `processing_complete`, and `issues`.
+
+These are available automatic credits, not a product-specific compliance determination. The endpoint does not save a field/application. If soil is unavailable, it returns a partial baseline with `processing_complete: false` and `SOIL_UNAVAILABLE`; do not treat that partial sum as the full baseline.
+
+The example shows selected response fields when soil could not be processed. Available non-soil credits are still returned.
+
+<RequestExample>
+
+```bash cURL
+curl --request POST 'https://esa-v2.acreblitz.com/api/v2/field/runoff-baseline' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "field_boundary": {
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -95.404,
+            43.102
+          ],
+          [
+            -95.392,
+            43.102
+          ],
+          [
+            -95.392,
+            43.11
+          ],
+          [
+            -95.404,
+            43.11
+          ],
+          [
+            -95.404,
+            43.102
+          ]
+        ]
+      ]
+    }
+  }
+}'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 — selected response fields
+{
+  "soil_data": null,
+  "processing_complete": false,
+  "issues": [
+    {
+      "code": "SOIL_UNAVAILABLE",
+      "message": "Baseline excludes soil-dependent credits; retry for a complete result"
+    }
+  ]
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+Invalid field boundaries return `422 INVALID_REQUEST`. Missing soil can instead return HTTP 200 with `processing_complete: false` and the `SOIL_UNAVAILABLE` issue. Inspect completeness before using the baseline.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

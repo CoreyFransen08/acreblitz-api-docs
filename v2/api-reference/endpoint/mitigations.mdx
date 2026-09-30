@@ -1,0 +1,44 @@
+---
+title: "Get runoff mitigation options"
+description: "Read the active EPA runoff mitigation option tree"
+api: "GET https://esa-v2.acreblitz.com/api/v2/mitigations/{mitigation_type}"
+---
+
+Read the active EPA runoff mitigation option tree.
+
+<ParamField path="mitigation_type" type="string" required>
+  Only `epa_runoff` is supported. Other values return 422.
+</ParamField>
+
+
+## Response
+
+`categories` contains active categories in display order. Each category has `options`; each option has `sub_options`. Options contain labels and available runoff points. Use the returned identifiers and definitions when presenting choices, rather than hardcoding a points catalog.
+
+A valid type with no active definitions returns an empty categories array. The example shows that empty-catalog response.
+
+<RequestExample>
+
+```bash cURL
+curl --request GET 'https://esa-v2.acreblitz.com/api/v2/mitigations/epa_runoff' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY"
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "mitigation_type": "epa_runoff",
+  "categories": []
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+A mitigation type other than `epa_runoff` returns `422 INVALID_REQUEST`. Dependency and capacity errors can also apply.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

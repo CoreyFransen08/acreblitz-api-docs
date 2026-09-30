@@ -1,0 +1,43 @@
+---
+title: "Read docs with an AI agent"
+description: "Fetch documentation directly by URL, with indexes and complete Markdown for V1 and V2"
+---
+
+Give your agent a documentation URL and ask it to fetch the page. You do not need to copy the page into the chat. Reading public documentation requires no API key. Calling the ESA API still requires your provider key.
+
+## Discover pages
+
+Start at [llms.txt](https://docs.acreblitz.com/llms.txt). It links to every documented V1 and V2 page, including every endpoint. Choose the version before building requests:
+
+| Version | API host and prefix | Documentation |
+|---|---|---|
+| V1 | `https://esa.acreblitz.com/api/v1` | Existing pages outside `/v2/` |
+| V2 | `https://esa-v2.acreblitz.com/api/v2` | Pages under `/v2/` |
+
+```bash
+curl --fail --location https://docs.acreblitz.com/llms.txt
+```
+
+## Read a page directly
+
+Append `.md` to a page URL to fetch its Markdown, including parameters and examples:
+
+```bash
+curl --fail --location \
+  https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-submit.md
+```
+
+The hosted site also supports requesting Markdown with an `Accept` header:
+
+```bash
+curl --fail --location --header 'Accept: text/markdown' \
+  https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-submit
+```
+
+For full context, fetch [llms-full.txt](https://docs.acreblitz.com/llms-full.txt). It contains both versions and expands shared input documentation so agents can read required fields without following source-code imports. Prefer individual pages when the agent has a limited context window.
+
+## Example agent task
+
+> Fetch https://docs.acreblitz.com/llms.txt and use only the V2 documentation. Read the bulk submission, job status, results, and error pages directly. Build a request with shared products and crops, then override products and crops for one field. Explain the effective values for each field and handle both HTTP errors and failed items. Read the URLs yourself; do not ask me to paste their contents.
+
+An agent needs a web-fetch or browsing tool to use these links. If its tool cannot fetch a page, it should report that limitation and try the Markdown URL or complete-content file. It should not guess endpoint behavior from an unread page.

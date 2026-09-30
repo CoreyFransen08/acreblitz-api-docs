@@ -1,0 +1,62 @@
+---
+title: "Set group portal lock"
+description: "Lock or unlock all current applications in an account-scoped group"
+api: "PUT https://esa-v2.acreblitz.com/api/v2/groups/{provider_group_id}/portal-lock"
+---
+
+Lock or unlock all current applications in an account-scoped group.
+
+<ParamField path="provider_group_id" type="string" required>
+  Your job/work-order identifier, up to 200 characters.
+</ParamField>
+
+<ParamField body="account_id" type="string" required>
+  Required account identifier. Group identifiers may repeat across accounts.
+</ParamField>
+
+<ParamField body="locked" type="boolean" required>
+  Use true to lock current applications or false to unlock them.
+</ParamField>
+
+
+## Group scope
+
+The operation applies to existing applications owned by your provider with this account and group. It returns their application-event references. An empty or unowned group returns 404.
+
+New applications added afterward start unlocked. Wait for bulk completion before locking a complete job, and call again after adding applications. Group unlock also clears locks set individually on those applications. Shared runoff selections follow the same field/year lock rule as an individual application lock.
+
+<RequestExample>
+
+```bash cURL
+curl --request PUT 'https://esa-v2.acreblitz.com/api/v2/groups/work-order-42/portal-lock' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "account_id": "your-account",
+  "locked": true
+}'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "provider_group_id": "work-order-42",
+  "account_id": "your-account",
+  "locked": true,
+  "application_event_ids": [
+    "019953f8-8c00-7000-8000-000000000002"
+  ]
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+No applications for the supplied group/account returns `404 GROUP_NOT_FOUND`. Invalid or missing account, group, or lock values return `422 INVALID_REQUEST`.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.

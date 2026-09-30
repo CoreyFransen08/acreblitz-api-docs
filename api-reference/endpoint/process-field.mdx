@@ -71,10 +71,6 @@ This endpoint is idempotent on `(provider_field_id, provider_id)` — resubmitti
   Whether the pipeline completed end-to-end.
 </ResponseField>
 
-<ResponseField name="field_id" type="string" required>
-  Internal AcreBlitz field UUID resolved from `provider_field_id`.
-</ResponseField>
-
 <ResponseField name="provider_field_id" type="string" required>
   Echo of the provider's field identifier from the request.
 </ResponseField>
@@ -212,7 +208,6 @@ curl -X POST https://esa.acreblitz.com/api/v1/process-field \
 ```json
 {
   "success": true,
-  "field_id": "a3393468-8c3a-45a3-9fce-9d71bdb58489",
   "provider_field_id": "test_field_001",
   "soil_data": {
     "dominant_hydgrpdcd": "C",
