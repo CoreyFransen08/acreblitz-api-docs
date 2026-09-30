@@ -41,4 +41,4 @@ V1 uses https://esa.acreblitz.com/api/v1. V2 uses https://esa-v2.acreblitz.com/a
 
 ## Complete content
 
-- [All V1 and V2 documentation](https://docs.acreblitz.com/llms-full.txt?version=cd23c40eaeb985bb): Full page text, parameters, and request/response examples. Large file; prefer individual pages for focused questions.
+- [All V1 and V2 documentation](https://docs.acreblitz.com/llms-full.txt?version=fe6930cd51b886d1): Full page text, parameters, and request/response examples. Large file; prefer individual pages for focused questions.

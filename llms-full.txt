@@ -191,6 +191,7 @@ const result = await response.json();
 ```
 
 ```python Python
+import requests
 
 response = requests.post(
     "https://esa.acreblitz.com/api/v1/esa-check",

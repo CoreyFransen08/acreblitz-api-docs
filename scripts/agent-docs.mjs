@@ -21,11 +21,12 @@ async function expand(text) {
     text = text.replace(tag, await expand(snippet));
   }
   const imports = [...text.matchAll(/^import\s+(\w+)\s+from\s+['"]([^'"]+)['"];?\s*$/gm)];
-  for (const [, name, file] of imports) {
+  for (const [statement, name, file] of imports) {
     const snippet = await readFile(path.join(root, file.replace(/^\//, '')), 'utf8');
     text = text.replace(new RegExp(`<${name}\\s*/>`, 'g'), await expand(snippet));
+    text = text.replace(statement, '');
   }
-  return text.replace(/^import\s+.*$/gm, '');
+  return text;
 }
 function markdown(text) {
   return text.replace(/^---\n[\s\S]*?\n---\n/, '')
@@ -63,7 +64,7 @@ for (const [file, value] of [['llms.txt',index],['llms-full.txt',full]]) {
   if (args.includes('--write')) await writeFile(path.join(root,file),value);
   else if (await readFile(path.join(root,file),'utf8')!==value) throw new Error(`${file} is stale. Run node scripts/agent-docs.mjs --write`);
 }
-if (/<Snippet\b|<ApplicationInputs\s*\/>|^import\s/m.test(full)) throw new Error('Agent export contains unresolved snippet imports');
+if (/<Snippet\b|<ApplicationInputs\s*\/>|^import\s+\w+\s+from\s+['"]/m.test(full)) throw new Error('Agent export contains unresolved snippet imports');
 console.log(`Agent exports cover ${entries.length} pages (${entries.filter(e=>e.version==='V2').length} V2), with snippets expanded.`);
 const baseIndex=args.indexOf('--base-url');
 if (baseIndex !== -1) {
@@ -78,7 +79,7 @@ if (baseIndex !== -1) {
       const body=await response.text();
       const readable=kind==='html' ? body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<[^>]*>/g,' ').replace(/&#x27;|&#39;|&apos;/g,"'").replace(/&quot;/g,'"').replace(/&amp;/g,'&') : body;
       const missing=expected.filter(s=>!readable.includes(s));
-      if(kind==='markdown' && /<Snippet\b|^import\s/m.test(body)) throw new Error('Unresolved snippet in hosted Markdown');
+      if(kind==='markdown' && /<Snippet\b|^import\s+\w+\s+from\s+['"]/m.test(body)) throw new Error('Unresolved snippet in hosted Markdown');
       if(!response.ok || missing.length || (kind!=='html' && /<!doctype html|<html[\s>]/i.test(body))) throw new Error(`HTTP ${response.status}; missing ${missing.join(', ') || 'none'}; ${response.headers.get('content-type')}`);
       console.log(`PASS ${url.pathname} (${body.length} chars)`);
     } catch(error) { failed++; console.error(`FAIL ${url.pathname}: ${error.message}`); }
