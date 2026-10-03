@@ -24,55 +24,6 @@
   "navigation": {
     "versions": [
       {
-        "version": "V1",
-        "default": true,
-        "tabs": [
-          {
-            "tab": "Documentation",
-            "groups": [
-              {
-                "group": "Getting Started",
-                "pages": [
-                  "index",
-                  "quickstart",
-                  "authentication"
-                ]
-              }
-            ]
-          },
-          {
-            "tab": "API Reference",
-            "groups": [
-              {
-                "group": "Overview",
-                "pages": [
-                  "api-reference/introduction"
-                ]
-              },
-              {
-                "group": "ESA Check",
-                "pages": [
-                  "api-reference/endpoint/esa-check"
-                ]
-              },
-              {
-                "group": "Field Processing",
-                "pages": [
-                  "api-reference/endpoint/process-field"
-                ]
-              },
-              {
-                "group": "Reports",
-                "pages": [
-                  "api-reference/endpoint/enlist-report",
-                  "api-reference/endpoint/runoff-report"
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
         "version": "V2",
         "tabs": [
           {
@@ -89,6 +40,7 @@
               {
                 "group": "Integration guides",
                 "pages": [
+                  "v2/compliance-determination",
                   "v2/migration",
                   "v2/errors",
                   "v2/ai-agents"
@@ -129,6 +81,13 @@
                 ]
               },
               {
+                "group": "Compliance information",
+                "pages": [
+                  "v2/api-reference/endpoint/application-compliance",
+                  "v2/api-reference/endpoint/group-compliance"
+                ]
+              },
+              {
                 "group": "Compliance reports",
                 "pages": [
                   "v2/api-reference/endpoint/enlist-report",
@@ -146,7 +105,8 @@
               }
             ]
           }
-        ]
+        ],
+        "default": true
       }
     ]
   },
@@ -175,11 +135,11 @@
       "website": "https://www.acreblitz.com"
     }
   },
-  "description": "ESA and PULA API documentation, examples, and error handling for AcreBlitz V1 and V2.",
+  "description": "ESA and PULA API documentation, examples, and error handling for AcreBlitz V2.",
   "markdown": {
     "instructions": [
-      "State which API version you are using. V1 uses https://esa.acreblitz.com/api/v1; V2 uses https://esa-v2.acreblitz.com/api/v2.",
-      "Read /llms.txt for links to both versions. For V2 bulk integration, read bulk submission, status, results, and /v2/errors before constructing requests."
+      "Use the V2 API at https://esa.acreblitz.com/api/v2. V1 is deprecated and is no longer documented.",
+      "Read /llms.txt for all supported endpoints. For bulk integration, read bulk submission, status, results, and /v2/errors before constructing requests."
     ]
   }
 }

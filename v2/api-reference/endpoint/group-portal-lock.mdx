@@ -1,7 +1,7 @@
 ---
 title: "Set group portal lock"
 description: "Lock or unlock all current applications in an account-scoped group"
-api: "PUT https://esa-v2.acreblitz.com/api/v2/groups/{provider_group_id}/portal-lock"
+api: "PUT https://esa.acreblitz.com/api/v2/groups/{provider_group_id}/portal-lock"
 ---
 
 Lock or unlock all current applications in an account-scoped group.
@@ -28,7 +28,7 @@ New applications added afterward start unlocked. Wait for bulk completion before
 <RequestExample>
 
 ```bash cURL
-curl --request PUT 'https://esa-v2.acreblitz.com/api/v2/groups/work-order-42/portal-lock' \
+curl --request PUT 'https://esa.acreblitz.com/api/v2/groups/work-order-42/portal-lock' \
   --header "X-API-Key: $ACREBLITZ_API_KEY" \
   --header 'Content-Type: application/json' \
   --data '{

@@ -1,28 +1,18 @@
 # AcreBlitz API
 
-> ESA and PULA API documentation for V1 and V2.
+> ESA and PULA API documentation for V2.
 
-V1 uses https://esa.acreblitz.com/api/v1. V2 uses https://esa-v2.acreblitz.com/api/v2. Keep versions separate when answering or building requests. V1 is the website default; this index explicitly includes both versions. Fetch the linked Markdown pages directly; no API key or user copy/paste is needed to read the public documentation.
-
-## V1
-
-- [AcreBlitz ESA Check API](https://docs.acreblitz.com/index.md): ESA and PULA compliance API for agricultural platforms
-- [Quickstart](https://docs.acreblitz.com/quickstart.md): Make your first ESA check in minutes
-- [Authentication](https://docs.acreblitz.com/authentication.md): How to authenticate your AcreBlitz API requests
-- [API Reference](https://docs.acreblitz.com/api-reference/introduction.md): Overview of the AcreBlitz ESA Check API
-- [ESA Check](https://docs.acreblitz.com/api-reference/endpoint/esa-check.md): Check ESA/PULA restrictions for a pesticide application
-- [Process Field](https://docs.acreblitz.com/api-reference/endpoint/process-field.md): Process a field boundary and auto-apply runoff mitigation measures
-- [Enlist Report](https://docs.acreblitz.com/api-reference/endpoint/enlist-report.md): Download Enlist Mitigation PDF report for a field
-- [Runoff Report](https://docs.acreblitz.com/api-reference/endpoint/runoff-report.md): Download EPA Runoff Mitigation PDF report for a field
+Use https://esa.acreblitz.com/api/v2 for all API requests. Fetch the linked Markdown pages directly; no API key or user copy/paste is needed to read the public documentation.
 
 ## V2
 
 - [ESA API V2](https://docs.acreblitz.com/v2/index.md): Synchronous ESA assessments, bulk jobs, soil analysis, and portal controls
 - [Quickstart](https://docs.acreblitz.com/v2/quickstart.md): Make a V2 check and submit your first bulk job
 - [Authentication](https://docs.acreblitz.com/v2/authentication.md): Authenticate V2 requests with your provider API key
-- [Migrate from V1](https://docs.acreblitz.com/v2/migration.md): Adopt V2 while keeping your V1 integration available
+- [Understanding compliance determinations](https://docs.acreblitz.com/v2/compliance-determination.md): How V2 determines runoff, drift, setup violations, and overall application status—and when to refresh a result
+- [Migrate to V2](https://docs.acreblitz.com/v2/migration.md): Move your integration to the supported V2 API
 - [Errors and retries](https://docs.acreblitz.com/v2/errors.md): V2 error codes, validation examples, bulk item failures, assessment issues, and retry rules
-- [Read docs with an AI agent](https://docs.acreblitz.com/v2/ai-agents.md): Fetch documentation directly by URL, with indexes and complete Markdown for V1 and V2
+- [Read docs with an AI agent](https://docs.acreblitz.com/v2/ai-agents.md): Fetch current API documentation directly by URL, with indexes and complete Markdown
 - [API overview](https://docs.acreblitz.com/v2/api-reference/introduction.md): All V2 endpoints and their processing behavior
 - [ESA check](https://docs.acreblitz.com/v2/api-reference/endpoint/esa-check.md): Assess ESA and PULA requirements for one pesticide application
 - [Submit bulk checks](https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-submit.md): Submit multiple applications with shared or per-field products and crops
@@ -32,6 +22,8 @@ V1 uses https://esa.acreblitz.com/api/v1. V2 uses https://esa-v2.acreblitz.com/a
 - [Runoff baseline](https://docs.acreblitz.com/v2/api-reference/endpoint/runoff-baseline.md): Calculate automatic runoff mitigation credits without saving a field
 - [Process a field](https://docs.acreblitz.com/v2/api-reference/endpoint/process-field.md): Save a field with soil analysis and automatic runoff credits
 - [Get runoff mitigation options](https://docs.acreblitz.com/v2/api-reference/endpoint/mitigations.md): Read the active EPA runoff mitigation option tree
+- [Get application compliance](https://docs.acreblitz.com/v2/api-reference/endpoint/application-compliance.md): Retrieve saved requirements, current runoff credits, and full drift configuration for an application
+- [Get group compliance](https://docs.acreblitz.com/v2/api-reference/endpoint/group-compliance.md): Retrieve paginated compliance information for an account-scoped application group
 - [Enlist compliance report](https://docs.acreblitz.com/v2/api-reference/endpoint/enlist-report.md): Download the Enlist compliance report for a provider-owned field
 - [Runoff compliance report](https://docs.acreblitz.com/v2/api-reference/endpoint/runoff-report.md): Download the Runoff compliance report for a provider-owned field
 - [Issue portal access](https://docs.acreblitz.com/v2/api-reference/endpoint/portal-access.md): Issue an expiring portal link for one application
@@ -41,4 +33,4 @@ V1 uses https://esa.acreblitz.com/api/v1. V2 uses https://esa-v2.acreblitz.com/a
 
 ## Complete content
 
-- [All V1 and V2 documentation](https://docs.acreblitz.com/llms-full.txt?version=fe6930cd51b886d1): Full page text, parameters, and request/response examples. Large file; prefer individual pages for focused questions.
+- [All API documentation](https://docs.acreblitz.com/llms-full.txt?version=14214ef44f955d16): Full page text, parameters, and request/response examples. Large file; prefer individual pages for focused questions.

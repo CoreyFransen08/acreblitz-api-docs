@@ -3,7 +3,7 @@ title: "API overview"
 description: "All V2 endpoints and their processing behavior"
 ---
 
-Base URL: `https://esa-v2.acreblitz.com`. Every endpoint requires `X-API-Key`.
+Base URL: `https://esa.acreblitz.com`. Every endpoint requires `X-API-Key`.
 
 | Method | Route | Purpose |
 |---|---|---|
@@ -15,6 +15,8 @@ Base URL: `https://esa-v2.acreblitz.com`. Every endpoint requires `X-API-Key`.
 | POST | `/api/v2/field/runoff-baseline` | Calculate available automatic runoff credits. |
 | POST | `/api/v2/process-field` | Process a field without creating an application. |
 | GET | `/api/v2/mitigations/{mitigation_type}` | Read EPA runoff mitigation options. |
+| GET | `/api/v2/applications/{application_event_id}/compliance` | Read saved requirements, current runoff credits, and full drift configuration. |
+| GET | `/api/v2/groups/{provider_group_id}/compliance` | Page through compliance information for an account-scoped group. |
 | GET | `/api/v2/fields/{provider_field_id}/reports/enlist` | Download an Enlist compliance report. |
 | GET | `/api/v2/fields/{provider_field_id}/reports/runoff` | Download a runoff compliance report. |
 | POST | `/api/v2/applications/{application_event_id}/portal-access` | Issue an expiring portal link. |
@@ -26,9 +28,11 @@ Base URL: `https://esa-v2.acreblitz.com`. Every endpoint requires `X-API-Key`.
 
 Single checks return a response after required processing. When ESA is required, the saved field/application and response are updated together. No-ESA early returns do not create or update those records.
 
-Bulk intake accepts a job; it does not finish the checks in the intake response. Each processed field uses the same assessment workflow as a single check. Job completion and compliance are separate outcomes. Results remain available for **30 days after the job completes**; save the results you need.
+Bulk intake checks the unique products used across the full request. If all are confirmed to have no ESA requirement, it returns a completed job and all item results immediately. Other jobs enter the processing queue, where each field uses the same assessment workflow as a single check. Job completion and compliance are separate outcomes. Results remain available for **30 days after the job completes**; save the results you need.
 
 Standalone soil and runoff baseline requests do not save a field/application. Field processing saves a field and automatic runoff credits without creating an application.
+
+[Compliance retrieval](/v2/api-reference/endpoint/application-compliance) reads current selections and saved requirements without rerunning a check. [Group retrieval](/v2/api-reference/endpoint/group-compliance) requires `account_id` and supports pagination. Both use `Cache-Control: no-store` and distinguish current runoff scoring from the last saved assessment and drift computation.
 
 ## Response and request conventions
 

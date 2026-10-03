@@ -1,7 +1,7 @@
 ---
 title: "Get bulk results"
 description: "Read paginated results in original submission order"
-api: "GET https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/{job_id}/results"
+api: "GET https://esa.acreblitz.com/api/v2/esa-check/bulk/{job_id}/results"
 ---
 
 Read paginated results in original submission order.
@@ -21,6 +21,8 @@ Read paginated results in original submission order.
 
 ## Item results
 
+Jobs completed during the submission product check have succeeded items with `attempts: 0`. They never entered the processing queue. These results are also returned inline in the submission response and remain available here for the same retention period.
+
 Items remain in submission order (`item_index` starts at zero). Each has `application_id`, `provider_field_id`, `status`, `attempts`, `started_at`, `completed_at`, `result`, and `error`. New pending items have null result/error; queued items awaiting a retry may retain an error from an earlier attempt. Starting the next attempt clears that error. Treat `status` as authoritative. Succeeded items contain the same response structure as a single check. Failed items contain `{ code, message, retryable }` under `error`.
 
 Read `result.compliance` for succeeded checks; item success does not imply compliance. Follow `next_offset` until it is null. You can read results before the job completes, but queued/processing items are not final. Save the results you need before the 30-day retention window ends. Responses use `Cache-Control: no-store`.
@@ -30,7 +32,7 @@ The example below shows one pending item on the first page.
 <RequestExample>
 
 ```bash cURL
-curl --request GET 'https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001/results?offset=0&limit=1' \
+curl --request GET 'https://esa.acreblitz.com/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001/results?offset=0&limit=1' \
   --header "X-API-Key: $ACREBLITZ_API_KEY"
 ```
 
@@ -69,3 +71,9 @@ curl --request GET 'https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/019953f8-
 An invalid job UUID, offset, or limit returns `422 INVALID_REQUEST`. An unknown, expired, or other-provider job returns `404 BULK_JOB_NOT_FOUND`. HTTP 200 can contain failed items; see [bulk item failures and retry examples](/v2/errors#bulk-item-failures).
 
 All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Use the [error catalog and examples](/v2/errors) to choose a retry or correction. Keep `X-Request-ID` when present.
+
+## Runoff exemptions after processing
+
+See [Understanding compliance determinations](/v2/compliance-determination) for runoff and drift scoring, setup violations, overall status, and when to refresh a result.
+
+Each successful item follows the [ESA check runoff rules](/v2/api-reference/endpoint/esa-check#runoff-requirements-and-portal-exemptions): EPA runoff is required by default, and a saved portal exemption satisfies that application's EPA runoff obligation. Completed item results are processing-time snapshots. To read later portal edits, use [application compliance](/v2/api-reference/endpoint/application-compliance) or [group compliance](/v2/api-reference/endpoint/group-compliance).

@@ -1,18 +1,13 @@
 ---
 title: "Read docs with an AI agent"
-description: "Fetch documentation directly by URL, with indexes and complete Markdown for V1 and V2"
+description: "Fetch current API documentation directly by URL, with indexes and complete Markdown"
 ---
 
 Give your agent a documentation URL and ask it to fetch the page. You do not need to copy the page into the chat. Reading public documentation requires no API key. Calling the ESA API still requires your provider key.
 
 ## Discover pages
 
-Start at [llms.txt](https://docs.acreblitz.com/llms.txt). It links to every documented V1 and V2 page, including every endpoint. Choose the version before building requests:
-
-| Version | API host and prefix | Documentation |
-|---|---|---|
-| V1 | `https://esa.acreblitz.com/api/v1` | Existing pages outside `/v2/` |
-| V2 | `https://esa-v2.acreblitz.com/api/v2` | Pages under `/v2/` |
+Start at [llms.txt](https://docs.acreblitz.com/llms.txt). It links to every supported API endpoint and guide. Use `https://esa.acreblitz.com/api/v2` for API requests. Documentation pages live under `/v2/`.
 
 ```bash
 curl --fail --location https://docs.acreblitz.com/llms.txt
@@ -34,7 +29,7 @@ curl --fail --location --header 'Accept: text/markdown' \
   https://docs.acreblitz.com/v2/api-reference/endpoint/bulk-submit
 ```
 
-For full context, follow the **All V1 and V2 documentation** link in [llms.txt](https://docs.acreblitz.com/llms.txt). That link includes a version parameter for `llms-full.txt` so you receive the current release even when a CDN retains an older copy of the unversioned URL. It contains both versions and expands shared input documentation so agents can read required fields without following source-code imports. Prefer individual pages when the agent has a limited context window.
+For full context, follow the **All API documentation** link in [llms.txt](https://docs.acreblitz.com/llms.txt). That link includes a version parameter for `llms-full.txt` so you receive the current release even when a CDN retains an older copy of the unversioned URL. It covers the supported V2 API and expands shared input documentation so agents can read required fields without following source-code imports. Prefer individual pages when the agent has a limited context window.
 
 ## Example agent task
 

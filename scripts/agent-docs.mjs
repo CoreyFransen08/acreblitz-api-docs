@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Generate both-version agent exports; verify source coverage and unauthenticated HTTP reads.
+// Generate current API agent exports; verify source coverage and unauthenticated HTTP reads.
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,13 +49,13 @@ for (const version of config.navigation.versions) {
     entries.push({ version:version.version, slug, title:frontmatter(source,'title'), description:frontmatter(source,'description'), api:frontmatter(source,'api'), source, content:markdown(await expand(source)) });
   }
 }
-const intro='# AcreBlitz API\n\n> ESA and PULA API documentation for V1 and V2.\n\nV1 uses https://esa.acreblitz.com/api/v1. V2 uses https://esa-v2.acreblitz.com/api/v2. Keep versions separate when answering or building requests. V1 is the website default; this index explicitly includes both versions. Fetch the linked Markdown pages directly; no API key or user copy/paste is needed to read the public documentation.\n';
+const intro='# AcreBlitz API\n\n> ESA and PULA API documentation for V2.\n\nUse https://esa.acreblitz.com/api/v2 for all API requests. Fetch the linked Markdown pages directly; no API key or user copy/paste is needed to read the public documentation.\n';
 let index=intro;
 for (const version of config.navigation.versions) {
   index+=`\n## ${version.version}\n\n`;
   index+=entries.filter(e=>e.version===version.version).map(e=>`- [${e.title}](${origin}/${e.slug}.md): ${e.description}`).join('\n')+'\n';
 }
-index+='\n## Complete content\n\n- [All V1 and V2 documentation](https://docs.acreblitz.com/llms-full.txt): Full page text, parameters, and request/response examples. Large file; prefer individual pages for focused questions.\n';
+index+='\n## Complete content\n\n- [All API documentation](https://docs.acreblitz.com/llms-full.txt): Full page text, parameters, and request/response examples. Large file; prefer individual pages for focused questions.\n';
 const full=intro+'\n'+entries.map(e=>`# ${e.version}: ${e.title}\n\nSource: ${origin}/${e.slug}.md\n\n> ${e.description}\n${e.api ? `\nEndpoint: \`${e.api}\`\n` : ''}\n${e.content}\n`).join('\n---\n\n');
 const fullPath=`/llms-full.txt?version=${createHash('sha256').update(full).digest('hex').slice(0,16)}`;
 index=index.replace(`${origin}/llms-full.txt)`, `${origin}${fullPath})`);
@@ -70,7 +70,7 @@ const baseIndex=args.indexOf('--base-url');
 if (baseIndex !== -1) {
   const base=new URL(args[baseIndex+1]);
   if(!['http:','https:'].includes(base.protocol)) throw new Error('Use an http(s) docs URL');
-  const selected=args.includes('--v1-only') ? entries.filter(e=>e.version==='V1') : entries;
+  const selected=entries;
   const htmlOnly=args.includes('--html-only');
   let failed=0;
   async function check(url, expected, kind) {

@@ -10,7 +10,7 @@ Set `ACREBLITZ_API_KEY` on your backend, replace the provider/account/field iden
 <RequestExample>
 
 ```bash cURL
-curl --request POST 'https://esa-v2.acreblitz.com/api/v2/esa-check' \
+curl --request POST 'https://esa.acreblitz.com/api/v2/esa-check' \
   --header "X-API-Key: $ACREBLITZ_API_KEY" \
   --header 'Content-Type: application/json' \
   --data '{
@@ -88,7 +88,7 @@ If `esa_required` is false, inspect the issues before treating the result as not
 
 Use [Submit bulk checks](/v2/api-reference/endpoint/bulk-submit) to define common products, crops, pests, method, and date once. Each field can replace those settings independently. A bulk submission requires `provider_group_id` and returns **202 Accepted** with a `job_id`.
 
-Poll the returned `status_url`, then page through `results_url`. These URLs are relative to `https://esa-v2.acreblitz.com`. Preserve your `Idempotency-Key` when retrying the same submission.
+The API checks unique products across the full request first. When all are confirmed to have no ESA requirement, it returns `status: "completed"`, `esa_required: false`, and all `items` immediately. Otherwise, poll the returned `status_url`, then page through `results_url`. These URLs are relative to `https://esa.acreblitz.com`. Preserve your `Idempotency-Key` when retrying the same submission.
 
 A succeeded bulk item means its check returned a result. Inspect that result's compliance, even when the overall job is `completed`.
 

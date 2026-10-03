@@ -1,15 +1,15 @@
 ---
-title: "Migrate from V1"
-description: "Adopt V2 while keeping your V1 integration available"
+title: "Migrate to V2"
+description: "Move your integration to the supported V2 API"
 ---
 
-V1 and V2 use different hosts and contracts. Switch each integration explicitly; V2 does not serve V1 route aliases.
+V1 is deprecated and its endpoints are no longer documented. Use `https://esa.acreblitz.com` with the `/api/v2` prefix. Update your request and response handling to the V2 contracts below.
 
 | Topic | V2 behavior |
 |---|---|
-| Host and paths | Use `https://esa-v2.acreblitz.com/api/v2/...`. |
+| Host and paths | Use `https://esa.acreblitz.com/api/v2/...`. |
 | Single check | Returns an assessment in the same HTTP response. |
-| Bulk checks | Submit 1–100 fields, then poll and fetch per-field results. |
+| Bulk checks | Submit 1–100 fields. Confirmed no-ESA jobs return all results immediately; poll other jobs and fetch per-field results. |
 | Group identifier | Optional for a single check; required at the top level for bulk. |
 | Products and crops | Bulk defaults may be replaced per field; arrays are replaced, not merged. |
 | Pest inputs | Each product needs a product pest list or an inherited default. |
@@ -21,10 +21,10 @@ V1 and V2 use different hosts and contracts. Switch each integration explicitly;
 
 ## Roll out in order
 
-1. Confirm your V2 hostname and API key with AcreBlitz.
+1. Set your API base URL to `https://esa.acreblitz.com/api/v2` and use your provider API key.
 2. Validate request construction against the [single check](/v2/api-reference/endpoint/esa-check) and [bulk](/v2/api-reference/endpoint/bulk-submit) contracts.
 3. Handle `indeterminate` assessments and partial bulk failures before enabling intake.
-4. Move one provider/account workflow at a time. Avoid submitting the same field/application concurrently through both versions.
-5. Keep your V1 integration available while reviewing the V2 results and compliance reports.
+4. Move each provider/account workflow to V2 and review its results and compliance reports.
+5. Remove deprecated requests from your integration.
 
-V1-only capabilities remain in V1. Do not infer that an endpoint exists in V2 simply by changing its URL prefix. The [V2 API reference](/v2/api-reference/introduction) lists supported routes.
+Use the [API reference](/v2/api-reference/introduction) to choose supported routes. Changing a URL prefix alone does not update the request or response contract.

@@ -68,7 +68,7 @@ These can occur during a single check, field processing, application-time drift 
 | HTTP | Code | Example trigger | What you should do |
 |---|---|---|---|
 | 404 | `FIELD_NOT_FOUND` | No provider-owned field with an active, unexpired portal matches the report request. | Check `provider_field_id` and portal availability. |
-| 404 | `GROUP_NOT_FOUND` | No applications match the group and account on a group-lock request. | Check both identifiers and wait for bulk items to finish creating applications. |
+| 404 | `GROUP_NOT_FOUND` | No accessible applications match the group and account on a group-lock or group-compliance request. | Check both identifiers and wait for bulk items to finish creating applications. |
 | 403 | `INVALID_TOKEN` | Portal access is requested for an archived field. | Use an active field; contact support if archival is unexpected. |
 | 403 | `INACTIVE_TOKEN` | The field's portal is inactive. | Contact support to restore portal availability. |
 | 403 | `PORTAL_EXPIRED` | The field's portal access period has expired. | Arrange renewed portal availability; a new signed link alone cannot extend it. |
@@ -260,6 +260,8 @@ Queued items awaiting a retry can retain an `error` from an earlier attempt; sta
 
 ## Assessment issue codes
 
+Read [Understanding compliance determinations](/v2/compliance-determination#what-a-setup-violation-means) to distinguish a known setup violation from missing information and understand how each affects runoff, drift, and overall status.
+
 These codes appear in successful response issue lists, such as `compliance.issues`, drift assessment issues, or runoff-baseline `issues`. They are not HTTP error codes. A bulk item can be `succeeded` while its assessment is `indeterminate` or `not_met`.
 
 | Code | Example condition and next action |
@@ -271,9 +273,9 @@ These codes appear in successful response issue lists, such as `compliance.issue
 | `SOIL_QUEUE_FAILED` | Soil enrichment could not be queued; resubmit to retry. |
 | `UNRESOLVED_RATE` | The rate unit cannot be interpreted; correct the unit. Conservative buffers may apply. |
 | `LIMITATIONS_REVIEW_REQUIRED` | PULA text includes conditions requiring manual review; read the returned limitations. |
-| `DRIFT_CONDITIONS_UNVERIFIED` | Application weather or buffer placement remains unverified; review actual conditions. |
+| `DRIFT_CONDITIONS_UNVERIFIED` | Application-time weather and placement have not been evaluated. Supply current conditions to the drift-buffer compute endpoint; a successful calculation clears this generic issue. |
 | `UNSUPPORTED_MITIGATION` | A required mitigation type needs separate review. |
-| `RUNOFF_APPLICABILITY_UNVERIFIED` | Confirm EPA runoff applicability or any exemption in the portal. |
+| `RUNOFF_APPLICABILITY_UNVERIFIED` | A non-EPA runoff requirement has unverified applicability. EPA runoff defaults to required and honors saved portal exemptions. |
 | `RUNOFF_REQUIREMENT_UNRESOLVED` | Required runoff points could not be established; resolve the missing requirement. |
 | `LABEL_DROPLET_MINIMUM_UNRESOLVED` | The label's minimum droplet size could not be established; review the label. |
 | `DROPLET_BELOW_LABEL_MINIMUM` | Supplied droplets are smaller than the label minimum; correct the application setup. |
@@ -283,7 +285,11 @@ These codes appear in successful response issue lists, such as `compliance.issue
 | `WIND_SPEED_UNRESOLVED` | Application wind speed cannot be matched to a supported buffer tier; review actual weather. |
 | `MANUAL_DRIFT_PRACTICE_UNVERIFIED` | Manually selected drift practices still require verification. |
 | `MANUAL_DRIFT_OPTION_DISALLOWED` | A selected drift option does not apply to the current requirement; revise the selection. |
-| `DRIFT_REQUIREMENT_UNRESOLVED` | A current drift requirement could not be resolved; complete review before relying on the assessment. |
+| `BOOM_HEIGHT_MISSING` | Supply boom height when the configured ground buffer rule requires it. |
+| `BOOM_HEIGHT_EXCEEDS_LIMIT` | High boom was supplied where the configured rule requires low; drift is `not_met`. |
+| `DRIFT_RATE_TIER_UNRESOLVED` | The rate could not be matched to a configured buffer tier; resolve the rate/unit or missing rule data. |
+| `NO_TREATABLE_AREA` | The calculated buffer leaves no area available for treatment; drift is `not_met`. |
+| `DRIFT_REQUIREMENT_UNRESOLVED` | A drift requirement or its placement could not be resolved, including currently unsupported omni-directional/downslope placement. |
 
 For example, these selected fields can appear in an HTTP 200 response:
 

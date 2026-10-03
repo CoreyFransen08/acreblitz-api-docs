@@ -1,7 +1,7 @@
 ---
 title: "Runoff baseline"
 description: "Calculate automatic runoff mitigation credits without saving a field"
-api: "POST https://esa-v2.acreblitz.com/api/v2/field/runoff-baseline"
+api: "POST https://esa.acreblitz.com/api/v2/field/runoff-baseline"
 ---
 
 Calculate automatic runoff mitigation credits without saving a field.
@@ -22,7 +22,7 @@ The example shows selected response fields when soil could not be processed. Ava
 <RequestExample>
 
 ```bash cURL
-curl --request POST 'https://esa-v2.acreblitz.com/api/v2/field/runoff-baseline' \
+curl --request POST 'https://esa.acreblitz.com/api/v2/field/runoff-baseline' \
   --header "X-API-Key: $ACREBLITZ_API_KEY" \
   --header 'Content-Type: application/json' \
   --data '{

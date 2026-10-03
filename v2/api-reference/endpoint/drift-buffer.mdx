@@ -1,7 +1,7 @@
 ---
 title: "Compute application-time drift buffers"
 description: "Refresh an application assessment with current wind and application setup"
-api: "POST https://esa-v2.acreblitz.com/api/v2/applications/{application_event_id}/drift-buffer/compute"
+api: "POST https://esa.acreblitz.com/api/v2/applications/{application_event_id}/drift-buffer/compute"
 ---
 
 Refresh an application assessment with current wind and application setup.
@@ -54,18 +54,35 @@ Refresh an application assessment with current wind and application setup.
 
 ## Assessment behavior
 
+See [Understanding compliance determinations](/v2/compliance-determination) for runoff and drift scoring, setup violations, overall status, and when to refresh a result.
+
 The endpoint resolves your saved application, applies current weather/setup inputs and rate changes, and returns a refreshed check plus `application_time`. Weather and the assessment are saved for that application. It checks the application revision; conflicting changes return 409.
 
 `application_time` includes submitted inputs, effective rates, reductions, manual mitigation claims, feature scope, feature counts, per-edge buffers, and product-specific buffer details. Requested field-boundary output is returned under `application_time.geometry` and is not retained in the saved assessment snapshot.
 
-The returned `compliance.status` is authoritative for this assessment. Manual claims and conditions that cannot be verified remain explicit issues; a calculated buffer alone is not application clearance. Protected features are read for this request so new nearby features can affect the result.
+Read `compliance.drift.status` for drift and `compliance.status` for the overall application assessment. `application_time.drift_status` repeats the drift result; `application_time.status` repeats the overall result. Runoff shortfalls and unresolved PULA restrictions can prevent an overall pass even when drift is `met`.
 
-The example shows selected response fields.
+| Drift status | Meaning |
+|---|---|
+| `met` | The supplied setup satisfies the configured drift rules and a treatable area has been calculated. Spray only within that area. A remaining buffer is a restriction to follow, not a failure. |
+| `not_met` | A known setup violation exists, such as droplets below the label minimum, a high boom where the rule requires low, a disallowed mitigation selection, or no treatable area remaining. Correct the setup and recompute. |
+| `indeterminate` | Required inputs or rules cannot be resolved, or a manual drift practice remains unverified. Read the issue codes. |
+| `not_applicable` | No drift requirement applies. |
+
+For an application-time assessment, `compliance.drift.scope` is `application_setup_and_treatable_area`. `requires_buffer` and `has_treatable_area` describe the calculated result; both are null when setup or rule resolution prevents calculation. A `met` result can have `requires_buffer: true`. It assesses your submitted setup and the calculated area; it does not certify where spraying actually occurred.
+
+Use `geometry: "both"` to receive the buffer and treatable area together. `geometry: "none"` only omits the field-boundary output; it still performs the calculation and returns the same status. If setup is invalid or required rules are unresolved, requested output conservatively marks the entire field as buffer with `treatable: null`. When the calculated buffer consumes the whole field, drift returns `not_met` with `NO_TREATABLE_AREA`.
+
+A successful calculation clears the generic `DRIFT_CONDITIONS_UNVERIFIED` issue. Specific issues remain: unknown products, missing required droplet/boom inputs, unresolved rate/wind tiers, unsupported omni-directional or downslope placement, and unverified manual practices prevent a drift pass. Rate-specific wind tiers take precedence over method-level tiers. Wind outside configured tiers returns `WIND_SPEED_UNRESOLVED`; the API does not infer an unconfigured wind limit. Temperature and humidity are recorded inputs, not currently evaluated label thresholds.
+
+Protected features are read for each request so new nearby features can affect the result. Recompute after changing application conditions or mitigation selections. [Application compliance](/v2/api-reference/endpoint/application-compliance) and [group compliance](/v2/api-reference/endpoint/group-compliance) expose the saved `drift.last_computation.drift_status`; those GETs do not run a new placement calculation. Older snapshots have a null `drift_status` until recomputed.
+
+The example shows selected response fields for an application with a remaining buffer, a treatable area, satisfied runoff, and no other unresolved restrictions.
 
 <RequestExample>
 
 ```bash cURL
-curl --request POST 'https://esa-v2.acreblitz.com/api/v2/applications/019953f8-8c00-7000-8000-000000000002/drift-buffer/compute' \
+curl --request POST 'https://esa.acreblitz.com/api/v2/applications/019953f8-8c00-7000-8000-000000000002/drift-buffer/compute' \
   --header "X-API-Key: $ACREBLITZ_API_KEY" \
   --header 'Content-Type: application/json' \
   --data '{
@@ -100,7 +117,8 @@ curl --request POST 'https://esa-v2.acreblitz.com/api/v2/applications/019953f8-8
   "application_event_id": "019953f8-8c00-7000-8000-000000000002",
   "application_time": {
     "checked_at": "2026-10-05T14:10:00.000Z",
-    "status": "indeterminate",
+    "status": "met",
+    "drift_status": "met",
     "feature_scope": "global_only",
     "non_managed_feature_count": 0,
     "exclusion_feature_count": 0,
@@ -118,7 +136,13 @@ curl --request POST 'https://esa-v2.acreblitz.com/api/v2/applications/019953f8-8
   "compliance": {
     "version": 1,
     "scope": "requirements_and_gaps",
-    "status": "indeterminate"
+    "status": "met",
+    "drift": {
+      "status": "met",
+      "scope": "application_setup_and_treatable_area",
+      "requires_buffer": true,
+      "has_treatable_area": true
+    }
   }
 }
 ```

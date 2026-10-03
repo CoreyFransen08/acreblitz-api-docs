@@ -1,89 +1,15 @@
 ---
-title: AcreBlitz ESA Check API
-description: ESA and PULA compliance API for agricultural platforms
+title: "AcreBlitz ESA API"
+description: "ESA assessments, compliance information, and reports for pesticide applications"
 ---
 
-The AcreBlitz ESA Check API provides **Endangered Species Act (ESA) compliance checking** for pesticide applications. With a single API call, determine if a field has active Pesticide Use Limitation Areas (PULAs), retrieve detailed limitation data, and receive a white-labeled portal URL where your customers can select mitigations and generate compliance reports.
+Use the AcreBlitz V2 API to assess applications, retrieve compliance requirements, and provide a portal for mitigation selection.
+
+Base URL: `https://esa.acreblitz.com`. All API routes use `/api/v2` and require your provider API key.
 
 <CardGroup cols={2}>
-  <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Get up and running with your first ESA check in minutes
-  </Card>
-  <Card title="Authentication" icon="key" href="/authentication">
-    Learn how to authenticate your API requests
-  </Card>
-  <Card title="ESA Check Endpoint" icon="magnifying-glass" href="/api-reference/endpoint/esa-check">
-    Full reference for the ESA Check API endpoint
-  </Card>
-  <Card title="Report Endpoints" icon="file-pdf" href="/api-reference/endpoint/enlist-report">
-    Download compliance reports programmatically
-  </Card>
-</CardGroup>
-
-## How It Works
-
-<Steps>
-  <Step title="Send Application Data">
-    Your platform sends field boundary, products, and application details to the ESA Check API with a single POST request.
-  </Step>
-  <Step title="Receive Results & Portal URL">
-    The API returns PULA limitations, product status, and a secure portal URL valid for 1 year. Results include everything needed for compliance.
-  </Step>
-  <Step title="Direct Users to Portal">
-    Display the portal link in your UI, send via email, or both. Users access the white-labeled portal to view details and select mitigations.
-  </Step>
-  <Step title="Users Complete Mitigations">
-    Your users select mitigation practices (we automatically pre-select available mitigations), view soil and weather data, and download branded compliance reports.
-  </Step>
-</Steps>
-
-## Key Features
-
-<CardGroup cols={2}>
-  <Card title="Universal ESA Detection" icon="shield-check">
-    Send all applications to the API. You only pay when a product in the tank mix has ESA language on the label. Every qualifying check returns complete limitation data and a portal URL.
-  </Card>
-  <Card title="Single API Call" icon="code">
-    One simple POST request returns everything you need: Bulletins Live! Two limitations, product status, mitigation requirements, and a white-labeled portal URL for your customer.
-  </Card>
-  <Card title="White-Labeled Portal" icon="palette">
-    Your users access a fully branded portal with your company logo. They select mitigations, view soil/weather data, and generate compliance reports — all under your brand.
-  </Card>
-  <Card title="Automated Compliance Reports" icon="file-lines">
-    Compliance reports are automatically generated with your branding when your users complete mitigation selection. No additional development required.
-  </Card>
-</CardGroup>
-
-## Portal Experience
-
-Your customers access a fully branded compliance portal powered by AcreBlitz.
-
-<Frame>
-  <img src="/images/portal-landing.png" alt="White-labeled portal landing page" />
-</Frame>
-
-<CardGroup cols={2}>
-  <Frame caption="Interactive mitigation selection">
-    <img src="/images/mitigation-selection.png" alt="Mitigation selection interface" />
-  </Frame>
-  <Frame caption="Branded compliance reports">
-    <img src="/images/compliance-report.png" alt="Compliance report PDF" />
-  </Frame>
-</CardGroup>
-
-## Who It's For
-
-<CardGroup cols={2}>
-  <Card title="Ag Tech Platforms" icon="microchip">
-    Add ESA compliance checking to your precision ag software. Integrate PULA verification directly into application planning workflows.
-  </Card>
-  <Card title="Farm Management Software" icon="tractor">
-    Give growers instant compliance verification for their fields. Enable proactive planning and regulatory adherence.
-  </Card>
-  <Card title="Applicator Software" icon="spray-can">
-    Integrate ESA compliance into commercial applicator workflows. Verify PULA restrictions for customer fields before job execution.
-  </Card>
-  <Card title="Mobile Applications" icon="mobile">
-    Enable field-level PULA checking from mobile devices. Verify compliance on-the-go before application begins.
-  </Card>
+  <Card title="Quickstart" icon="bolt" href="/v2/quickstart">Run a single check or submit a bulk job.</Card>
+  <Card title="Authentication" icon="key" href="/v2/authentication">Authenticate with your provider API key.</Card>
+  <Card title="API reference" icon="code" href="/v2/api-reference/introduction">Browse all supported endpoints.</Card>
+  <Card title="Compliance information" icon="shield-check" href="/v2/api-reference/endpoint/application-compliance">Read saved requirements, current runoff points, and full drift details.</Card>
 </CardGroup>

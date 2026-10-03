@@ -1,7 +1,7 @@
 ---
 title: "Submit bulk checks"
 description: "Submit multiple applications with shared or per-field products and crops"
-api: "POST https://esa-v2.acreblitz.com/api/v2/esa-check/bulk"
+api: "POST https://esa.acreblitz.com/api/v2/esa-check/bulk"
 ---
 
 Submit one job containing 1–100 field applications. Put values shared by your fields at the top of the request. Inside `fields[]`, supply each field's identity and boundary, plus any values that differ for that field.
@@ -165,20 +165,79 @@ Issue paths use zero-based array indexes, so `fields[1]` is the second field. Co
 
 ## Accepted response and polling
 
-The response is **202 Accepted**, including on an idempotent replay. It includes `Location` (the status path), `Retry-After: 5`, and `Cache-Control: no-store`. A replay can return an already-terminal job status. Both URLs are relative to the V2 hostname.
+The response is **202 Accepted**, including on an idempotent replay or immediate completion. It includes `Location` (the status path) and `Cache-Control: no-store`. Responses with `status: "queued"` or `"processing"` also include `Retry-After: 5`. Both URLs are relative to `https://esa.acreblitz.com`.
 
-Poll [job status](/v2/api-reference/endpoint/bulk-status) and fetch [results](/v2/api-reference/endpoint/bulk-results). A job with some failed items can finish as `completed_with_errors`. A succeeded item can still contain an indeterminate or unmet compliance assessment.
+When the returned status is `queued` or `processing`, poll [job status](/v2/api-reference/endpoint/bulk-status) and fetch [results](/v2/api-reference/endpoint/bulk-results). A job with some failed items can finish as `completed_with_errors`. A succeeded item can still contain an indeterminate or unmet compliance assessment.
+
+### Immediate completion when no products require ESA
+
+Before enqueueing a new job, the API collects the unique products used across **all fields**, including inherited top-level products and field-specific replacements, and resolves them together using the existing product cache. Rates, crops, and pests remain specific to each field. A top-level product that every field replaces is unused and does not affect the check.
+
+When every product is resolved and none requires ESA, the job completes in the submission response:
+
+- `status` is `completed` and top-level `esa_required` is `false`.
+- `items` contains all per-field results in submission order, using the same item structure as the results endpoint. Each item has `status: "succeeded"`, `attempts: 0`, and `result.compliance.status: "not_applicable"`.
+- No processing is queued, and no soil, PULA, or drift calculations or field/application creation occur. Bulk job and result records remain available for the normal 30-day retention period.
+- You can consume `items` immediately without polling. The status/results URLs remain available, and an identical idempotent replay returns the same stored results.
+
+If any used product requires ESA, is unresolved, or has unknown ESA status, the request follows the queued workflow. A reference lookup failure returns an HTTP error without creating a new job. Unknown products are never treated as confirmed no-ESA products. Validation of every field still happens before acceptance.
+
+Example immediately completed response for a one-field submission:
+
+```json
+{
+  "success": true,
+  "job_id": "019953f8-8c00-7000-8000-000000000001",
+  "status": "completed",
+  "total_items": 1,
+  "replayed": false,
+  "esa_required": false,
+  "status_url": "/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001",
+  "results_url": "/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001/results",
+  "items": [
+    {
+      "item_index": 0,
+      "application_id": "north-application-2026-10-05",
+      "provider_field_id": "north-field",
+      "status": "succeeded",
+      "attempts": 0,
+      "error": null,
+      "started_at": "2026-10-02T14:00:00.000Z",
+      "completed_at": "2026-10-02T14:00:00.000Z",
+      "result": {
+        "success": true,
+        "esa_required": false,
+        "provider_id": "your-provider",
+        "account_id": "your-account",
+        "products": [{ "epa_number": "66222-36", "product_name": "Atrazine 4L", "pest": ["Waterhemp"], "product_status": "Active", "esa_required": false, "pulas": [] }],
+        "summary": { "total_pulas": 0, "total_limitations": 0, "products_checked": 1, "products_with_limitations": 0 },
+        "compliance": {
+          "version": 1,
+          "scope": "requirements_and_gaps",
+          "calculated_at": "2026-10-02T14:00:00.000Z",
+          "processing_complete": true,
+          "status": "not_applicable",
+          "runoff": [],
+          "drift": { "status": "not_applicable", "requirements": null, "reductions": [] },
+          "soil": { "status": "not_applicable" },
+          "issues": []
+        }
+      }
+    }
+  ]
+}
+```
 
 ## Idempotency and retention
 
 The same key and effective input return the existing job with `replayed: true`. Changing inputs returns `409 IDEMPOTENCY_CONFLICT`. Without the header, each accepted submission creates a new job. Jobs and replay keys expire 30 days after completion; after expiration, the same key can create a new job.
 
-Split larger submissions into jobs of at most 100 fields. They may share `provider_group_id`, but each job needs its own idempotency key. A full backlog returns `429 BULK_BACKLOG_EXCEEDED`.
+Split larger submissions into jobs of at most 100 fields. They may share `provider_group_id`, but each job needs its own idempotency key. A full processing backlog returns `429 BULK_BACKLOG_EXCEEDED` for jobs that need queue processing. Confirmed no-ESA jobs can still complete immediately. Request rate limits apply to both paths.
 
 <RequestExample>
 
 ```bash cURL
-curl --request POST 'https://esa-v2.acreblitz.com/api/v2/esa-check/bulk' \
+curl --request POST 'https://esa.acreblitz.com/api/v2/esa-check/bulk' \
   --header "X-API-Key: $ACREBLITZ_API_KEY" \
   --header 'Idempotency-Key: work-order-42-first-pass' \
   --header 'Content-Type: application/json' \

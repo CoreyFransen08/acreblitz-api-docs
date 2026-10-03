@@ -1,0 +1,113 @@
+---
+title: "Get group compliance"
+description: "Retrieve paginated compliance information for an account-scoped application group"
+api: "GET https://esa.acreblitz.com/api/v2/groups/{provider_group_id}/compliance"
+---
+
+Read saved requirements, current runoff points, and full drift configuration for applications in a group. Provider identity comes from your API key. You must also supply `account_id` because group identifiers can repeat across accounts.
+
+<ParamField path="provider_group_id" type="string" required>
+  Your job or work-order identifier, up to 200 characters. URL-encode the value.
+</ParamField>
+
+<ParamField query="account_id" type="string" required>
+  Account identifier supplied when creating the applications, up to 200 characters.
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+  Zero-based offset, from 0 to 1,000,000. Use the returned `next_offset` for the next page.
+</ParamField>
+
+<ParamField query="limit" type="integer" default="50">
+  Page size, from 1 to 100 applications.
+</ParamField>
+
+<ParamField query="include_geometry" type="boolean" default="false">
+  Include saved buffer features and any saved PULA boundaries for each application. Accepts literal `true` or `false`. No new geometry is computed.
+</ParamField>
+
+## Group scope and pagination
+
+See [Understanding compliance determinations](/v2/compliance-determination) for runoff and drift scoring, setup violations, overall status, and when to refresh a result.
+
+`applications[]` contains the same complete application objects returned by [get application compliance](/v2/api-reference/endpoint/application-compliance), including requirements, runoff scoring and claims, full drift configuration, current reductions, setup/weather, and the last saved assessment. That page defines every nested field and how to interpret current selections versus historical assessments.
+
+The response also includes `retrieved_at`, `account_id`, `provider_group_id`, `total`, `offset`, `limit`, and `next_offset`. `total` counts existing accessible applications in this group and account. Members are ordered by application-event reference. Continue until `next_offset` is null. An offset beyond the last member returns an empty array with the total preserved. An empty or unowned group returns 404.
+
+Each page reads one consistent database snapshot. Separate pages can reflect later changes. Wait for [bulk completion](/v2/api-reference/endpoint/bulk-status) before retrieving a complete job; pending bulk items may not have an application yet. If group membership changes while paging, start again at offset zero.
+
+EPA runoff is required by default. Each application’s saved portal exemption returns runoff `status: "met"`, `required: false`, `exempt: true`, and zero effective required points. Portal edits are reflected on the next GET; historical assessments remain separate. See [runoff applicability](/v2/api-reference/endpoint/application-compliance#runoff-points-and-applicability) for details.
+
+There is no group-wide compliance verdict or sum of runoff points. Applications on the same field/year share selections, so adding their points would double-count credits. Inspect each application's runoff results and last assessment separately. A successful retrieval does not mean the applications are compliant.
+
+Requests are read-only and return `Cache-Control: no-store`. Portal locks or expiry do not block these provider reads; archived fields are excluded. Reading this endpoint does not refresh the saved requirements or compute drift placement.
+
+<RequestExample>
+
+```bash cURL
+curl --get 'https://esa.acreblitz.com/api/v2/groups/work-order-42/compliance' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --data-urlencode 'account_id=your-account' \
+  --data-urlencode 'offset=0' \
+  --data-urlencode 'limit=50' \
+  --data-urlencode 'include_geometry=false'
+```
+
+</RequestExample>
+
+This response shows an application still waiting for processing. Empty requirement lists and null assessments do not establish that no mitigations are needed.
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "retrieved_at": "2026-10-02T14:00:00.000Z",
+  "account_id": "your-account",
+  "provider_group_id": "work-order-42",
+  "total": 1,
+  "offset": 0,
+  "limit": 50,
+  "next_offset": null,
+  "applications": [
+    {
+      "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+      "application_id": "north-application-2026-10-05",
+      "account_id": "your-account",
+      "provider_group_id": "work-order-42",
+      "provider_field_id": "north-field",
+      "field_name": "North field",
+      "application_date": "2026-10-05",
+      "application_method": "Broadcast-Ground",
+      "products": [{ "epa_number": "123-456", "product_name": "Example product", "rate": 16, "rate_unit": "fl oz/acre", "pest": ["weeds"] }],
+      "crop": ["corn"],
+      "pest": ["weeds"],
+      "processing_status": "pending",
+      "updated_at": "2026-10-02T13:59:00.000Z",
+      "portal_locked_at": null,
+      "compliance": {
+        "scope": "saved_requirements_and_current_selections",
+        "requirements": [],
+        "runoff": [],
+        "drift": {
+          "configuration": null,
+          "reductions": [],
+          "adjuvant_results": null,
+          "setup": { "normalized_application_method": "ground", "gpa": null, "droplet_size": null, "boom_height": null },
+          "weather": { "wind_direction_deg": null, "wind_speed_mph": null, "temperature_f": null, "humidity_percent": null, "observed_at": null, "source": "forecast" },
+          "last_computation": null
+        },
+        "last_assessment": null
+      }
+    }
+  ]
+}
+```
+
+</ResponseExample>
+
+## Errors
+
+No accessible applications for the group/account returns `404 GROUP_NOT_FOUND`. A missing account, malformed pagination, invalid geometry flag, or unknown query parameter returns `422 INVALID_REQUEST`. Arrays and repeated query values are not accepted.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Keep `X-Request-ID` when present.

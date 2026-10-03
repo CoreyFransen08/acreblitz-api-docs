@@ -1,0 +1,228 @@
+---
+title: "Understanding compliance determinations"
+description: "How V2 determines runoff, drift, setup violations, and overall application status—and when to refresh a result"
+---
+
+V2 evaluates runoff and drift separately, then combines those results with any unresolved application restrictions. Read `compliance.status` for the overall assessment and the individual runoff and drift results to understand why it received that status.
+
+**A remaining drift buffer can coexist with a compliant application setup.** Drift can be `met` when the supplied conditions satisfy the configured rules and spraying stays within the calculated treatable area. Runoff can be `met` through sufficient eligible points or an EPA runoff exemption saved in the portal.
+
+This guide describes the API's determination. Its scope is the supplied inputs, configured requirements, selected mitigations, and available field information. A result does not verify actual spray tracks or resolve conditions that appear as outstanding issues.
+
+## Request success, processing, and compliance
+
+These fields answer different questions:
+
+| Field | What it tells you |
+|---|---|
+| HTTP status and `success` | Whether the API handled the request successfully. HTTP 200 does not mean the application is compliant. |
+| `compliance.processing_complete` | Whether required processing inputs and supported calculations were resolved. A completed assessment can still be `not_met` or `indeterminate`. |
+| `compliance.status` | The overall result for this assessment. |
+| `compliance.runoff[]` | Points, exemptions, and status for each runoff system. |
+| `compliance.drift.status` | The drift result for this assessment. |
+| `compliance.issues[]` | Specific violations, missing information, and remaining review requirements. |
+
+For bulk processing, an item's `status: "succeeded"` means processing returned a result. Read that item's `result.compliance` to determine application compliance. Different items can have different outcomes within a successfully completed job.
+
+| Compliance status | Meaning |
+|---|---|
+| `met` | Evaluated requirements are satisfied within the assessment's scope. Any calculated drift buffer still applies. |
+| `not_met` | At least one evaluated requirement has a known shortfall or setup violation. |
+| `indeterminate` | Required evidence, rule resolution, processing, or verification is missing. |
+| `not_applicable` | No applicable requirement was established for the verified inputs. Unknown products do not establish that no requirements apply. |
+
+## How the determination works
+
+1. **Identify requirements.** Resolve the submitted products and application method, then applicable Pesticide Use Limitation Area (PULA) requirements. Returned PULA text can still require review through Bulletins Live! Two (BLT).
+2. **Assess runoff.** Determine the point target for each runoff system, apply eligible credits, and honor any saved EPA runoff exemption for the application.
+3. **Assess drift.** Identify buffer requirements and reductions. At application time, evaluate the supplied setup and wind, read nearby protected features, and calculate the buffer and treatable area.
+4. **Combine results.** A known runoff shortfall or drift violation takes priority over unresolved information. Without a known failure, unresolved conditions prevent an overall pass.
+
+The overall result follows this order:
+
+- Any runoff or drift `not_met` → overall `not_met`.
+- Otherwise, an `indeterminate` component or outstanding assessment issue → overall `indeterminate`.
+- Otherwise, applicable requirements are satisfied → overall `met`.
+- Otherwise, no applicable requirements were established → overall `not_applicable`.
+
+`SOIL_QUEUE_FAILED` alone does not prevent a pass when that background soil work is optional. Missing soil needed to score a non-exempt runoff requirement does prevent a pass.
+
+| Runoff | Drift | Other conditions | Overall result |
+|---|---|---|---|
+| `met` | `met`, with a remaining buffer | None unresolved | `met` |
+| `met` through an EPA exemption | `met` | None unresolved | `met` |
+| `not_met` | `met` | None unresolved | `not_met` |
+| `met` | `not_met` | Missing information elsewhere | `not_met` |
+| `met` | `indeterminate` | Application-time placement not yet calculated | `indeterminate` |
+| `met` | `met` | `LIMITATIONS_REVIEW_REQUIRED` | `indeterminate` |
+
+An EPA exemption only satisfies EPA runoff. It does not override a separate Enlist requirement, drift violation, or outstanding PULA restriction.
+
+## Runoff determination
+
+### Required by default
+
+When a product or PULA introduces an EPA runoff requirement, the API assumes runoff is required. The applicator does not need to answer the portal exemption questionnaire before the API evaluates points.
+
+The API evaluates each runoff system separately. EPA runoff credits and Enlist credits are not combined. When several configured rules apply within a supported runoff system, the resolved target is the highest applicable point requirement. Missing or unresolved rules keep the non-exempt result `indeterminate`.
+
+### Required points and earned points
+
+| Runoff field | Meaning |
+|---|---|
+| `required` | Whether the runoff obligation applies after accounting for a saved exemption. |
+| `exempt` | Whether an accepted portal EPA runoff exemption satisfies this obligation. |
+| `required_points` | The effective target; zero for an accepted EPA exemption. Null means unresolved. |
+| `label_required_points` | The original label/PULA point target before an exemption; it can be null if unresolved. |
+| `earned_points` | Eligible credited points after product restrictions, soil eligibility, selection limits, and aggregation caps. |
+| `gap` | Points still needed: the larger of zero and required minus earned points. Null when the non-exempt target is unresolved. |
+| `credited_measures` | The selections actually counted toward the score. |
+
+Automatically derived field credits and saved portal selections can contribute to the score. A selected mitigation does not necessarily earn credit for every product. The [compliance GET endpoints](/v2/api-reference/endpoint/application-compliance) also return `selected_measures` so you can compare selections with the credits that counted.
+
+With resolved scoring inputs, earning at least the required points returns `met`; a shortfall returns `not_met`. For example, a target of 3 with 5 eligible points is `met`, while a target of 6 with 4 eligible points is `not_met` with a gap of 2. Missing required soil or an unresolved target returns `indeterminate`.
+
+Applications on the same field in the same application year share runoff selections. Their product restrictions and targets can differ. Evaluate each application; do not sum points across applications to create a group score.
+
+### Portal exemptions
+
+When the user saves an EPA runoff exemption in the portal, runoff returns `met` with `required: false`, `exempt: true`, `required_points: 0`, and `gap: 0`. The original point target, earned credits, exemption timestamp, and reason codes remain available.
+
+This selected response fragment illustrates an application whose original target was 3 points:
+
+```json
+{
+  "mitigation_type": "epa_runoff",
+  "required": false,
+  "exempt": true,
+  "status": "met",
+  "required_points": 0,
+  "label_required_points": 3,
+  "earned_points": 1,
+  "gap": 0,
+  "runoff_exemption_claimed_at": "2026-10-03T14:00:00.000Z",
+  "runoff_exemption_reasons": ["managed_areas_downgradient"]
+}
+```
+
+The exemption removes the EPA runoff points obligation, so missing scoring inputs do not make that exempt obligation fail. Choosing **None apply** in the portal restores normal point scoring.
+
+Exemptions belong to the application. Rechecking the same application preserves its selection; a new application starts required, even on the same field. Older unanswered records are treated as required. Timestamped legacy portal exemptions without reason codes are honored. You cannot submit an exemption flag in the ESA check request body.
+
+## Drift determination
+
+### Intake and application-time calculations
+
+A [single ESA check](/v2/api-reference/endpoint/esa-check) or [bulk check](/v2/api-reference/endpoint/bulk-submit) identifies buffer requirements and eligible reductions. Intake does not accept wind inputs or calculate application-time placement. A drift requirement therefore remains `indeterminate` at intake unless a known setup violation already establishes `not_met`.
+
+Call [compute application-time drift buffers](/v2/api-reference/endpoint/drift-buffer) with the returned application reference and current wind. Omitted optional setup fields use the saved values. The endpoint refreshes the assessment and calculates where the buffers apply.
+
+```bash
+curl --request POST "https://esa.acreblitz.com/api/v2/applications/$APPLICATION_EVENT_ID/drift-buffer/compute" \
+  --header "X-API-Key: $ACREBLITZ_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "wind_direction_deg": 180,
+    "wind_speed_mph": 8,
+    "droplet_size": "C",
+    "boom_height": "low",
+    "gpa": 15,
+    "geometry": "both"
+  }'
+```
+
+These values illustrate the request shape; use the actual application conditions. Wind direction is where the wind comes from, measured clockwise from north.
+
+### A buffer is a restriction to follow
+
+After a successful calculation, drift can be `met` with a nonzero buffer. A 100% reduction is not required. Spray only within the returned treatable area and respect the excluded buffer.
+
+The following selected fields describe drift with a remaining buffer and available treatment area:
+
+```json
+{
+  "compliance": {
+    "drift": {
+      "status": "met",
+      "scope": "application_setup_and_treatable_area",
+      "requires_buffer": true,
+      "has_treatable_area": true
+    }
+  },
+  "application_time": {
+    "drift_status": "met"
+  }
+}
+```
+
+Read `application_time.geometry.buffer` for the excluded drift area and `application_time.geometry.treatable` for the area remaining after all calculated product buffers are removed. `geometry: "none"` omits this output but still performs the calculation and returns the same status.
+
+For calculated ESA drift assessments, `requires_buffer` and `has_treatable_area` describe the result. They are null when invalid setup or unresolved rules block calculation. In that case, requested output conservatively marks the whole field as buffer and returns `treatable: null`. If a valid calculation leaves no treatable area, drift is `not_met` with `NO_TREATABLE_AREA`.
+
+`application_time.drift_status` repeats the drift result. `application_time.status` repeats the overall application result, which can differ because of runoff or other restrictions.
+
+## What a setup violation means
+
+A setup violation means a supplied condition conflicts with a known configured requirement. It is different from a missing input or an unresolved rule. These violations return drift `not_met`, and the overall assessment also returns `not_met`, even when other information is missing.
+
+| Issue code | Meaning | What to do |
+|---|---|---|
+| `DROPLET_BELOW_LABEL_MINIMUM` | The supplied droplet category is below a product's label minimum. | Use a setup that meets the minimum and recompute. |
+| `DROPLET_BELOW_BUFFER_TIER` | The supplied droplets do not qualify for an available buffer tier. | Correct the setup to match an applicable tier and recompute. |
+| `BOOM_HEIGHT_EXCEEDS_LIMIT` | High boom was supplied where the configured rule requires low. | Correct the actual boom setup and recompute. |
+| `MANUAL_DRIFT_OPTION_DISALLOWED` | A selected drift mitigation is not permitted for every applicable product. | Revise the portal selection and recompute. |
+| `NO_TREATABLE_AREA` | The calculated buffer leaves no area available for treatment under these conditions. | Review the conditions and application plan, then recalculate any changes. This is an area restriction rather than a missing input. |
+
+A valid API request can return HTTP 200 with these findings. By contrast, a malformed request, unsupported input value, or missing required request field normally returns HTTP 422. Correct request validation errors before interpreting compliance. See the [error catalog](/v2/errors) for both response types.
+
+### What keeps drift indeterminate
+
+| Missing information or unresolved condition | Relevant issue codes |
+|---|---|
+| Required droplet size or boom height is absent. | `DROPLET_SIZE_MISSING`, `BOOM_HEIGHT_MISSING` |
+| The label minimum or applicable buffer rule cannot be resolved. | `LABEL_DROPLET_MINIMUM_UNRESOLVED`, `DRIFT_METHOD_UNRESOLVED`, `DRIFT_REQUIREMENT_UNRESOLVED` |
+| A rate or wind value cannot be matched to configured tiers. | `UNRESOLVED_RATE`, `DRIFT_RATE_TIER_UNRESOLVED`, `WIND_SPEED_UNRESOLVED` |
+| A product or its ESA status is unknown. | `UNKNOWN_PRODUCT`, `ESA_STATUS_UNKNOWN` |
+| A manually selected drift practice still needs verification. | `MANUAL_DRIFT_PRACTICE_UNVERIFIED` |
+| Application-time conditions and buffer placement have not been evaluated. | `DRIFT_CONDITIONS_UNVERIFIED` |
+
+A successful placement calculation removes `DRIFT_CONDITIONS_UNVERIFIED`. More specific unresolved issues can remain. An eligible manual practice can affect the calculated buffer while its implementation remains unverified, leaving drift `indeterminate`.
+
+The current placement engine evaluates wind-directional buffers. Additional omni-directional or downslope placement remains unresolved. Wind outside configured tiers is reported as unresolved; the API does not invent an unconfigured wind limit. Temperature and humidity are recorded but are not currently evaluated against label thresholds.
+
+## New assessments and saved results
+
+**A result describes the inputs at the time it was calculated.** Changing the application later does not automatically update every saved result.
+
+| Operation | What you receive |
+|---|---|
+| Single ESA check or a newly processed bulk item | A new intake assessment of the submitted application. |
+| Application-time drift calculation | A refreshed application assessment, including drift evaluated for the supplied conditions. |
+| Application or group compliance GET | Current runoff scoring against saved requirements, current portal selections, and saved drift configuration. It also includes historical assessment and drift calculation results. |
+| Retrieval of completed bulk results | The original item results from processing time. Later portal edits do not rewrite them. |
+
+A compliance GET contains three distinct views:
+
+- `compliance.runoff[]` reflects current scoring and exemptions against the saved requirements. It does not refresh product/PULA point targets or fetch new soil.
+- `compliance.last_assessment` is the last saved ESA assessment, including its timestamp and overall status.
+- `compliance.drift.last_computation` is the saved application-time result. Its `drift_status` describes that calculation's setup, not a new evaluation of current conditions. Older calculations can have a null `drift_status`.
+
+A GET does not return a new overall `compliance.status`. Do not combine current runoff with an older drift pass and present that combination as a new overall determination. Use the saved timestamps and inputs to explain the result, and recompute when the setup changes.
+
+For example, you calculate drift at a low boom height and receive `met`. If the applicator later changes to high boom, the saved drift calculation still describes low boom. Recompute with the new height. If the applicable rule requires low boom, the new result is `not_met`.
+
+For a runoff example, the user saves an EPA exemption after an assessment reported a point shortfall. The next compliance GET returns current runoff `met`, but `last_assessment.status` can still show the old failure. That difference reflects two calculation times, not a failed exemption save.
+
+## When to refresh
+
+| What changed | Next action |
+|---|---|
+| Runoff exemption or runoff mitigation selection in the portal | Read application/group compliance for current runoff. Run a new assessment when you need an updated overall result. |
+| Wind, droplets, boom height, spray volume, product rate, or drift mitigation selections | Recompute application-time drift using current conditions. |
+| Products added/removed, application date, or field boundary | Resubmit the ESA check, then recompute application-time drift when applicable. |
+| Background soil processing completed | Resubmit the application to refresh its saved determination. |
+| You only need to inspect a completed bulk job | Retrieve its item results, recognizing they are processing-time snapshots. |
+
+Fresh compliance GETs use `Cache-Control: no-store`. This ensures a fresh read; it does not rerun drift placement. Product and soil reuse are separate from the age of a saved assessment.
+
+For request fields and complete response shapes, use [ESA check](/v2/api-reference/endpoint/esa-check), [application-time drift](/v2/api-reference/endpoint/drift-buffer), [application compliance](/v2/api-reference/endpoint/application-compliance), and [group compliance](/v2/api-reference/endpoint/group-compliance).

@@ -1,7 +1,7 @@
 ---
 title: "Analyze soil"
 description: "Analyze hydrologic soil groups and slope for a field boundary"
-api: "POST https://esa-v2.acreblitz.com/api/v2/soil/process"
+api: "POST https://esa.acreblitz.com/api/v2/soil/process"
 ---
 
 Analyze hydrologic soil groups and slope for a field boundary.
@@ -24,7 +24,7 @@ This endpoint does not save a field/application. Soil may be reused across reque
 <RequestExample>
 
 ```bash cURL
-curl --request POST 'https://esa-v2.acreblitz.com/api/v2/soil/process' \
+curl --request POST 'https://esa.acreblitz.com/api/v2/soil/process' \
   --header "X-API-Key: $ACREBLITZ_API_KEY" \
   --header 'Content-Type: application/json' \
   --data '{

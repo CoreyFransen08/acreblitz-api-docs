@@ -1,7 +1,7 @@
 ---
 title: "Issue portal access"
 description: "Issue an expiring portal link for one application"
-api: "POST https://esa-v2.acreblitz.com/api/v2/applications/{application_event_id}/portal-access"
+api: "POST https://esa.acreblitz.com/api/v2/applications/{application_event_id}/portal-access"
 ---
 
 Issue an expiring portal link for one application.
@@ -34,7 +34,7 @@ The example shows selected response fields. Its placeholder URL represents the c
 <RequestExample>
 
 ```bash cURL
-curl --request POST 'https://esa-v2.acreblitz.com/api/v2/applications/019953f8-8c00-7000-8000-000000000002/portal-access' \
+curl --request POST 'https://esa.acreblitz.com/api/v2/applications/019953f8-8c00-7000-8000-000000000002/portal-access' \
   --header "X-API-Key: $ACREBLITZ_API_KEY" \
   --header 'Content-Type: application/json' \
   --data '{

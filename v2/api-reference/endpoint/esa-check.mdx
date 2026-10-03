@@ -1,7 +1,7 @@
 ---
 title: "ESA check"
 description: "Assess ESA and PULA requirements for one pesticide application"
-api: "POST https://esa-v2.acreblitz.com/api/v2/esa-check"
+api: "POST https://esa.acreblitz.com/api/v2/esa-check"
 ---
 
 Assess ESA and PULA requirements for one pesticide application.
@@ -86,6 +86,8 @@ Assess ESA and PULA requirements for one pesticide application.
 
 ### Response options
 
+See [Understanding compliance determinations](/v2/compliance-determination) for runoff and drift scoring, setup violations, overall status, and when to refresh a result.
+
 <ParamField body="include_geometry" type="boolean" default="false">
   Include PULA field-boundary data when available.
 </ParamField>
@@ -110,6 +112,27 @@ Product results include `esa_required`, registration status, effective pests, an
 
 `mitigation_portal_url_expires_at` is the signed-link expiration in signed-link mode and null in token mode. `expires_at` describes the field portal's availability, which can have a different lifetime. Use the returned link unchanged.
 
+## Runoff requirements and portal exemptions
+
+When a product or PULA introduces an EPA runoff requirement, the API assumes runoff is required immediately. No portal questionnaire answer is needed to evaluate points: sufficient credits return `met`, a shortfall returns `not_met`, and missing scoring inputs return `indeterminate`.
+
+Each `compliance.runoff[]` entry includes `required`, `exempt`, `required_points`, `label_required_points`, `earned_points`, `gap`, `status`, `credited_measures`, `runoff_exemption_claimed_at`, and `runoff_exemption_reasons`.
+
+- With no exemption, `required: true`, `exempt: false`, and `required_points` equals the label/PULA point target in `label_required_points`.
+- When the user saves an EPA runoff exemption in the portal, that application's runoff returns `status: "met"`, `required: false`, `exempt: true`, `required_points: 0`, and `gap: 0`. `label_required_points` retains the original target (or null if unresolved); earned credits and the saved exemption timestamp/reasons remain visible. Missing soil or an unresolved point target does not block an exempt runoff obligation.
+- Choosing “None apply” in the portal restores the point requirement. Rechecking the same application preserves its portal selection. A new application starts required, even on the same field.
+- Older `required: false` records without an exemption evaluation timestamp are treated as required. Timestamped legacy exemption selections without reason codes are honored.
+
+Exemptions apply to EPA runoff only. Enlist, other runoff systems, drift, and PULA restrictions are still assessed separately, so a runoff exemption does not automatically make the entire application compliant. No request-body exemption flag is accepted; the portal records the user's selection.
+
+These rules also apply to [bulk checks](/v2/api-reference/endpoint/bulk-submit). After a portal edit, use [application compliance](/v2/api-reference/endpoint/application-compliance) or [group compliance](/v2/api-reference/endpoint/group-compliance) for current runoff results. Previously returned checks and completed bulk results remain snapshots; resubmit a check to refresh its saved assessment.
+
+## Drift assessment
+
+Single and bulk ESA checks identify drift requirements and reductions. They do not calculate application-time buffer placement or accept wind inputs. When a drift requirement exists and no known violation is found, intake drift remains `indeterminate` until you call [compute application-time drift buffers](/v2/api-reference/endpoint/drift-buffer) with the application reference and current wind/setup. A known violation, such as droplets below the label minimum, returns drift and overall `not_met` immediately, even if other inputs remain unresolved.
+
+The application-time endpoint can return drift `met` with a remaining buffer: your supplied setup complies when spraying stays within the calculated treatable area. A 100% buffer reduction is not required. Its `application_time.drift_status` is separate from the overall `application_time.status`. Repeating an intake check produces a new intake assessment; recompute application-time drift afterward to assess placement for the new inputs.
+
 ## Repeat a check
 
 The provider/account/application identity is reused. Resubmitting updates the saved assessment when ESA processing is required. A no-ESA early return does not update an existing saved application. A changed field boundary refreshes its derived data. Background soil enrichment requires a new check to refresh the assessment.
@@ -119,7 +142,7 @@ The example response below shows selected fields only; values depend on product,
 <RequestExample>
 
 ```bash cURL
-curl --request POST 'https://esa-v2.acreblitz.com/api/v2/esa-check' \
+curl --request POST 'https://esa.acreblitz.com/api/v2/esa-check' \
   --header "X-API-Key: $ACREBLITZ_API_KEY" \
   --header 'Content-Type: application/json' \
   --data '{

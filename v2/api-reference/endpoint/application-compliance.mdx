@@ -1,0 +1,202 @@
+---
+title: "Get application compliance"
+description: "Retrieve saved requirements, current runoff credits, and full drift configuration for an application"
+api: "GET https://esa.acreblitz.com/api/v2/applications/{application_event_id}/compliance"
+---
+
+Read compliance information after an ESA check or after an applicator changes selections in the portal. The response combines saved application requirements with current mitigation selections. Every request reads fresh data and returns `Cache-Control: no-store`.
+
+<ParamField path="application_event_id" type="string" required>
+  Application-event reference returned by an ESA check. Use this UUID, not your submitted `application_id`.
+</ParamField>
+
+<ParamField query="include_geometry" type="boolean" default="false">
+  Use `true` to include saved `buffer_features` and any PULA boundaries included in the last assessment. Only literal `true` and `false` are accepted. This does not compute new buffer or treatable-area boundaries.
+</ParamField>
+
+## Response fields
+
+The response contains `success`, `retrieved_at`, and `application`. Group retrieval returns this same application object for each member.
+
+| Field under `application` | Meaning |
+|---|---|
+| `application_event_id`, `application_id` | API application reference and your submitted application identifier. |
+| `account_id`, `provider_group_id`, `provider_field_id`, `field_name` | Account, group, and field context. Optional identifiers can be null. |
+| `application_date`, `application_method`, `products`, `crop`, `pest` | Current saved application inputs. |
+| `processing_status`, `updated_at`, `portal_locked_at` | Application processing state, last application update, and portal lock timestamp. Child selections can change independently of `updated_at`. |
+| `compliance.scope` | Always `saved_requirements_and_current_selections`. |
+| `compliance.requirements[]` | Every saved mitigation requirement, including `mitigation_type`, effective `required`, nullable `required_points`, `updated_at`, runoff exemption selections (plus `exempt` and `label_required_points` for EPA runoff), and any requirement-specific `drift_buffers`. |
+| `compliance.runoff[]` | Current runoff scoring for each saved runoff requirement. EPA runoff and Enlist remain separate. |
+| `compliance.drift` | Full saved drift configuration, current reductions and selections, setup, weather, and historical computation details. |
+| `compliance.last_assessment` | Last saved ESA assessment: `calculated_at`, `status`, `processing_complete`, `issues`, and product/PULA limitations. Null when no assessment was saved. |
+
+## Runoff points and applicability
+
+See [Understanding compliance determinations](/v2/compliance-determination) for runoff and drift scoring, setup violations, overall status, and when to refresh a result.
+
+Each runoff entry includes `mitigation_type`, `year`, `required`, `exempt`, `required_points`, `label_required_points`, `earned_points`, `gap`, `status`, `credited_measures`, `selected_measures`, exemption claims, and `issues`.
+
+- `required_points` is the effective requirement: zero for an accepted EPA runoff exemption, otherwise the saved target. `label_required_points` retains the saved label/PULA target, including for exempt applications. Null means unresolved; it does not mean zero.
+- `earned_points` is recalculated from current selections using active definitions, product restrictions, soil eligibility, selection limits, and aggregation caps. `credited_measures` explains the credits counted. `selected_measures` also includes selections that did not qualify for credit, with source, implementation date, and notes.
+- `gap` is the larger of zero and required minus earned points. It is null when required points are unresolved.
+- `year` comes from `application_date`. Applications on the same field in the same year share runoff selections, but their product restrictions and required points can differ.
+- `status` is `met`, `not_met`, or `indeterminate` for runoff within this scope. For non-exempt requirements, a missing soil result, unknown product, incomplete application processing, unresolved requirement, unsupported mitigation type, or unverified non-EPA applicability keeps it `indeterminate`. An accepted EPA exemption returns `met` without requiring runoff scoring inputs.
+
+Runoff `issues` contains code strings: `RUNOFF_APPLICABILITY_UNVERIFIED`, `RUNOFF_REQUIREMENT_UNRESOLVED`, `SOIL_UNAVAILABLE`, `UNKNOWN_PRODUCT`, `APPLICATION_PROCESSING_INCOMPLETE`, or `UNSUPPORTED_MITIGATION`.
+
+EPA runoff is required by default, including older unanswered records saved with `required: false`. An explicit portal exemption (`required: false` with an evaluation timestamp) returns `required: false`, `exempt: true`, `status: "met"`, `required_points: 0`, and `gap: 0`. `runoff_exemption_claimed_at` and `runoff_exemption_reasons` preserve the selection; timestamped legacy exemptions without reason codes are supported. Choosing “None apply” restores `required: true` and scoring against the saved target. The `requirements[]` and `runoff[]` entries use the same effective requirement.
+
+Portal selections appear on the next GET without resubmitting a check. EPA exemptions do not exempt Enlist, other runoff systems, or drift. `RUNOFF_APPLICABILITY_UNVERIFIED` is no longer emitted for EPA runoff; it can still describe an optional non-EPA runoff requirement. Historical `last_assessment` values and completed bulk results are unchanged until a new check is run.
+
+## Drift configuration and details
+
+`compliance.drift.configuration` returns the complete saved configuration, or null when none exists. Inspect its `version`; current V2 checks produce version 4 with:
+
+- `computed_at` and `summary` for `wind_directional`, `omni_directional`, and `downslope` buffers. Summaries separate `mitigatable` and `non_mitigatable` distances.
+- `requirements[]` with source (`product` or `pula_limitation`), `product_epa`, `config_label`, `limitation_id` when available, matched method, and `raw_distance_ft`.
+- Complete `buffers_esa` for each requirement, including anchor, exclusion categories, mitigation eligibility, methods, distance units, droplet/boom tiers, wind-speed ranges, rate ranges, and mitigation types when configured.
+- Raw and normalized rates, rate resolution, active-ingredient information, and flags indicating conditional wind/rate tiers when available.
+
+`reductions[]` returns current saved totals and selected mitigations by drift type. Each selection includes its label, definition points and reduction percentage, custom value, and implementation notes. These totals are recorded selections; they are not newly verified buffer reductions.
+
+`setup` includes normalized application method, GPA, droplet size, and boom height. `weather` includes wind direction, wind speed, temperature, humidity, observation timestamp, and source. Wind direction is where wind comes **from**, clockwise from north; speed is mph, temperature is °F, and humidity is percent. `adjuvant_results` contains the saved adjuvant evaluation, or null.
+
+`last_computation` contains the last application-time computation's timestamp, overall `status`, separate `drift_status`, inputs, reductions, manual claims, feature counts/scope, per-edge details, and product breakdown, or null. It can predate current selections or weather. `drift_status: "met"` means the supplied setup satisfied the configured drift rules when applied within the calculated treatable area, even if a buffer remained. This is a saved result, not a fresh drift assessment. Older computations have a null `drift_status` until recomputed. With `include_geometry=true`, `buffer_features` contains saved portal features, or null; it is separate from that historical computation.
+
+## Fresh reads and saved assessments
+
+This GET request does not rerun an ESA check, fetch new soil, refresh product/PULA requirements, or recompute drift placement. There is no new overall `compliance.status`; read current runoff status separately from `last_assessment.status`. A current runoff `met` result does not establish overall application compliance. Missing assessment/configuration data remains null or empty, including while processing is pending or failed.
+
+To refresh the saved requirements, resubmit the application to [ESA check](/v2/api-reference/endpoint/esa-check). To calculate buffers using application-time weather and receive buffer/treatable-area boundaries, use [compute drift buffers](/v2/api-reference/endpoint/drift-buffer). No-ESA checks that did not create an application-event reference cannot be retrieved here. An expired or locked portal does not prevent an authorized provider from reading an existing application; archived fields are excluded.
+
+<RequestExample>
+
+```bash cURL
+curl --request GET 'https://esa.acreblitz.com/api/v2/applications/019953f8-8c00-7000-8000-000000000002/compliance?include_geometry=false' \
+  --header "X-API-Key: $ACREBLITZ_API_KEY"
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200
+{
+  "success": true,
+  "retrieved_at": "2026-10-02T14:00:00.000Z",
+  "application": {
+    "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+    "application_id": "north-application-2026-10-05",
+    "account_id": "your-account",
+    "provider_group_id": "work-order-42",
+    "provider_field_id": "north-field",
+    "field_name": "North field",
+    "application_date": "2026-10-05",
+    "application_method": "Broadcast-Ground",
+    "products": [{ "epa_number": "123-456", "product_name": "Example product", "rate": 16, "rate_unit": "fl oz/acre", "pest": ["weeds"] }],
+    "crop": ["corn"],
+    "pest": ["weeds"],
+    "processing_status": "completed",
+    "updated_at": "2026-10-02T13:00:00.000Z",
+    "portal_locked_at": null,
+    "compliance": {
+      "scope": "saved_requirements_and_current_selections",
+      "requirements": [
+        {
+          "mitigation_type": "epa_runoff",
+          "required": true,
+          "required_points": 3,
+          "updated_at": "2026-10-02T13:00:00.000Z",
+          "runoff_exemption_claimed_at": "2026-10-02T13:00:00.000Z",
+          "runoff_exemption_reasons": [],
+          "drift_buffers": null
+        },
+        {
+          "mitigation_type": "epa_drift_ground",
+          "required": true,
+          "required_points": null,
+          "updated_at": "2026-10-02T13:00:00.000Z",
+          "runoff_exemption_claimed_at": null,
+          "runoff_exemption_reasons": null,
+          "drift_buffers": null
+        }
+      ],
+      "runoff": [
+        {
+          "mitigation_type": "epa_runoff",
+          "year": 2026,
+          "required": true,
+          "required_points": 3,
+          "earned_points": 0,
+          "gap": 3,
+          "status": "not_met",
+          "credited_measures": [],
+          "selected_measures": [],
+          "runoff_exemption_claimed_at": "2026-10-02T13:00:00.000Z",
+          "runoff_exemption_reasons": [],
+          "issues": []
+        }
+      ],
+      "drift": {
+        "configuration": {
+          "version": 4,
+          "computed_at": "2026-10-02T13:00:00.000Z",
+          "summary": {
+            "wind_directional": { "mitigatable": { "distance": 240, "unit": "feet", "mitigation_type": "epa_drift_ground" }, "non_mitigatable": null },
+            "omni_directional": null,
+            "downslope": null
+          },
+          "requirements": [
+            {
+              "config_label": "product:123-456",
+              "source": "product",
+              "product_epa": "123-456",
+              "limitation_id": null,
+              "buffers_esa": {
+                "anchor": "field_edge_inward",
+                "can_mitigate": true,
+                "exclusion_categories": [],
+                "buffer_types": {
+                  "wind_directional": {
+                    "methods": [{ "type": "ground", "distance": 240, "unit": "feet", "mitigation_type": "epa_drift_ground" }]
+                  }
+                }
+              },
+              "method": "ground",
+              "raw_distance_ft": 240,
+              "has_wind_speed_ranges": false,
+              "has_rate_ranges": false,
+              "rate_normalized": { "value": 16, "unit": "fl_oz_per_acre" },
+              "rate_raw": { "rate": 16, "rate_unit": "fl oz/acre" },
+              "rate_resolution": "not_applicable",
+              "ai_info": null
+            }
+          ]
+        },
+        "reductions": [],
+        "adjuvant_results": null,
+        "setup": { "normalized_application_method": "ground", "gpa": 10, "droplet_size": "coarse", "boom_height": "low" },
+        "weather": { "wind_direction_deg": null, "wind_speed_mph": null, "temperature_f": null, "humidity_percent": null, "observed_at": null, "source": "forecast" },
+        "last_computation": null
+      },
+      "last_assessment": {
+        "calculated_at": "2026-10-02T13:00:00.000Z",
+        "status": "not_met",
+        "processing_complete": true,
+        "issues": [{ "code": "DRIFT_CONDITIONS_UNVERIFIED", "message": "Buffer placement and application weather have not been verified" }],
+        "products": [{ "epa_number": "123-456", "product_name": "Example product", "pest": ["weeds"], "product_status": "Active", "esa_required": true, "pulas": [] }]
+      }
+    }
+  }
+}
+```
+
+</ResponseExample>
+
+The example uses illustrative product requirements. Use your returned configuration and labels for the actual application.
+
+## Errors
+
+An absent or other-provider application, or one on an archived field, returns `404 APPLICATION_NOT_FOUND`. A malformed application UUID, invalid query value, or unknown query parameter returns `422 INVALID_REQUEST`.
+
+All routes can also return [authentication, validation, rate-limit, and dependency errors](/v2/errors#http-error-catalog). Keep `X-Request-ID` when present.

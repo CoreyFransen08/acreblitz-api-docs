@@ -1,7 +1,7 @@
 ---
 title: "Get bulk job status"
 description: "Read processing progress and terminal counts"
-api: "GET https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/{job_id}"
+api: "GET https://esa.acreblitz.com/api/v2/esa-check/bulk/{job_id}"
 ---
 
 Read processing progress and terminal counts.
@@ -15,6 +15,8 @@ Read processing progress and terminal counts.
 
 `status` is `queued`, `processing`, `completed`, `completed_with_errors`, or `failed`. The last three are terminal. `completed` means every item succeeded, `completed_with_errors` means some items succeeded and some failed, and `failed` means no item succeeded.
 
+A job whose products are all confirmed to have no ESA requirement starts as `completed` during submission. Its results are returned inline by the submission endpoint, so you do not need to poll it.
+
 `counts` reports queued, processing, succeeded, and failed items. `started_at`, `completed_at`, and `expires_at` can be null while work is pending. Results expire 30 days after terminal completion.
 
 Poll with backoff (for example, every five seconds). Responses use `Cache-Control: no-store`. A different provider or expired/unknown job receives `404 BULK_JOB_NOT_FOUND`.
@@ -22,7 +24,7 @@ Poll with backoff (for example, every five seconds). Responses use `Cache-Contro
 <RequestExample>
 
 ```bash cURL
-curl --request GET 'https://esa-v2.acreblitz.com/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001' \
+curl --request GET 'https://esa.acreblitz.com/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001' \
   --header "X-API-Key: $ACREBLITZ_API_KEY"
 ```
 

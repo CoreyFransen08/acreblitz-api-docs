@@ -1,7 +1,7 @@
 ---
 title: "Get runoff mitigation options"
 description: "Read the active EPA runoff mitigation option tree"
-api: "GET https://esa-v2.acreblitz.com/api/v2/mitigations/{mitigation_type}"
+api: "GET https://esa.acreblitz.com/api/v2/mitigations/{mitigation_type}"
 ---
 
 Read the active EPA runoff mitigation option tree.
@@ -20,7 +20,7 @@ A valid type with no active definitions returns an empty categories array. The e
 <RequestExample>
 
 ```bash cURL
-curl --request GET 'https://esa-v2.acreblitz.com/api/v2/mitigations/epa_runoff' \
+curl --request GET 'https://esa.acreblitz.com/api/v2/mitigations/epa_runoff' \
   --header "X-API-Key: $ACREBLITZ_API_KEY"
 ```
 

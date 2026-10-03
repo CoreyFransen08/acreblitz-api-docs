@@ -1,7 +1,7 @@
 ---
 title: "Runoff compliance report"
 description: "Download the Runoff compliance report for a provider-owned field"
-api: "GET https://esa-v2.acreblitz.com/api/v2/fields/{provider_field_id}/reports/runoff"
+api: "GET https://esa.acreblitz.com/api/v2/fields/{provider_field_id}/reports/runoff"
 ---
 
 Download the Runoff compliance report for a provider-owned field.
@@ -31,7 +31,7 @@ The example requests the 2026 report.
 <RequestExample>
 
 ```bash cURL
-curl --request GET 'https://esa-v2.acreblitz.com/api/v2/fields/north-field/reports/runoff?year=2026' \
+curl --request GET 'https://esa.acreblitz.com/api/v2/fields/north-field/reports/runoff?year=2026' \
   --header "X-API-Key: $ACREBLITZ_API_KEY" \
   --output runoff-report.pdf
 ```
