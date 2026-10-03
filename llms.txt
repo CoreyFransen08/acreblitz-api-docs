@@ -33,4 +33,4 @@ Use https://esa.acreblitz.com/api/v2 for all API requests. Fetch the linked Mark
 
 ## Complete content
 
-- [All API documentation](https://docs.acreblitz.com/llms-full.txt?version=14214ef44f955d16): Full page text, parameters, and request/response examples. Large file; prefer individual pages for focused questions.
+- [All API documentation](https://docs.acreblitz.com/llms-full.txt?version=36b2530a372b8e5c): Full page text, parameters, and request/response examples. Large file; prefer individual pages for focused questions.

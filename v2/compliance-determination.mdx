@@ -33,7 +33,7 @@ For bulk processing, an item's `status: "succeeded"` means processing returned a
 
 ## How the determination works
 
-1. **Identify requirements.** Resolve the submitted products and application method, then applicable Pesticide Use Limitation Area (PULA) requirements. Returned PULA text can still require review through Bulletins Live! Two (BLT).
+1. **Identify requirements.** Resolve the submitted products and application method, then applicable Pesticide Use Limitation Area (PULA) requirements. Each product's matching PULAs and limitation text are returned under `products[].pulas[].limitations`. Runoff and drift requirements from a limitation are scored automatically; any other condition in the text needs review, which you can confirm in Bulletins Live! Two (BLT), so a returned limitation adds `LIMITATIONS_REVIEW_REQUIRED`. See [product PULA limitations](/v2/api-reference/endpoint/esa-check#product-pula-limitations).
 2. **Assess runoff.** Determine the point target for each runoff system, apply eligible credits, and honor any saved EPA runoff exemption for the application.
 3. **Assess drift.** Identify buffer requirements and reductions. At application time, evaluate the supplied setup and wind, read nearby protected features, and calculate the buffer and treatable area.
 4. **Combine results.** A known runoff shortfall or drift violation takes priority over unresolved information. Without a known failure, unresolved conditions prevent an overall pass.
@@ -204,7 +204,7 @@ The current placement engine evaluates wind-directional buffers. Additional omni
 A compliance GET contains three distinct views:
 
 - `compliance.runoff[]` reflects current scoring and exemptions against the saved requirements. It does not refresh product/PULA point targets or fetch new soil.
-- `compliance.last_assessment` is the last saved ESA assessment, including its timestamp and overall status.
+- `compliance.last_assessment` is the last saved ESA assessment, including its timestamp, overall status, issues, and each product's PULA limitations. A GET does not look up new or changed PULAs; resubmit the check to refresh them.
 - `compliance.drift.last_computation` is the saved application-time result. Its `drift_status` describes that calculation's setup, not a new evaluation of current conditions. Older calculations can have a null `drift_status`.
 
 A GET does not return a new overall `compliance.status`. Do not combine current runoff with an older drift pass and present that combination as a new overall determination. Use the saved timestamps and inputs to explain the result, and recompute when the setup changes.

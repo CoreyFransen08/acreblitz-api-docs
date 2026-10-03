@@ -14,6 +14,7 @@ V1 is deprecated and its endpoints are no longer documented. Use `https://esa.ac
 | Products and crops | Bulk defaults may be replaced per field; arrays are replaced, not merged. |
 | Pest inputs | Each product needs a product pest list or an inherited default. |
 | Method and droplet inputs | V2 validates supported categories; arbitrary strings are rejected. |
+| PULA limitations | Still returned per product under `products[].pulas[].limitations` (`limitation_id`, `code`, `limitation`, `mitigation_options`) with `summary` counts, on single checks, bulk item results, and the drift-buffer recompute. Compliance GETs return them under `compliance.last_assessment.products`. See [product PULA limitations](/v2/api-reference/endpoint/esa-check#product-pula-limitations). |
 | Optional details | `include_soil_analysis` and `include_mitigations` return assessment details when available. |
 | Errors | JSON `success: false` and `error.code`; validation errors also include issue paths. |
 | Portal links | Use returned links unchanged and honor their expiration. Providers can use token or signed-link access. |

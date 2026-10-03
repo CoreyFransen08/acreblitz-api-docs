@@ -272,7 +272,7 @@ These codes appear in successful response issue lists, such as `compliance.issue
 | `SOIL_UNAVAILABLE` | Soil-dependent processing is incomplete; allow enrichment and resubmit for a new assessment. |
 | `SOIL_QUEUE_FAILED` | Soil enrichment could not be queued; resubmit to retry. |
 | `UNRESOLVED_RATE` | The rate unit cannot be interpreted; correct the unit. Conservative buffers may apply. |
-| `LIMITATIONS_REVIEW_REQUIRED` | PULA text includes conditions requiring manual review; read the returned limitations. |
+| `LIMITATIONS_REVIEW_REQUIRED` | PULA text includes conditions requiring manual review; read the returned limitations under `products[].pulas[].limitations` (or `last_assessment.products` on compliance GETs). See [product PULA limitations](/v2/api-reference/endpoint/esa-check#product-pula-limitations). |
 | `DRIFT_CONDITIONS_UNVERIFIED` | Application-time weather and placement have not been evaluated. Supply current conditions to the drift-buffer compute endpoint; a successful calculation clears this generic issue. |
 | `UNSUPPORTED_MITIGATION` | A required mitigation type needs separate review. |
 | `RUNOFF_APPLICABILITY_UNVERIFIED` | A non-EPA runoff requirement has unverified applicability. EPA runoff defaults to required and honors saved portal exemptions. |

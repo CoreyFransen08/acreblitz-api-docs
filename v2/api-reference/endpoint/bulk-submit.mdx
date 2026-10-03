@@ -178,6 +178,7 @@ When every product is resolved and none requires ESA, the job completes in the s
 - `status` is `completed` and top-level `esa_required` is `false`.
 - `items` contains all per-field results in submission order, using the same item structure as the results endpoint. Each item has `status: "succeeded"`, `attempts: 0`, and `result.compliance.status: "not_applicable"`.
 - No processing is queued, and no soil, PULA, or drift calculations or field/application creation occur. Bulk job and result records remain available for the normal 30-day retention period.
+- Because no PULA lookup runs, every product's `pulas` is empty and `summary` counts are zero. Jobs that require ESA return each product's PULA limitations in the item `result`; see [bulk results](/v2/api-reference/endpoint/bulk-results).
 - You can consume `items` immediately without polling. The status/results URLs remain available, and an identical idempotent replay returns the same stored results.
 
 If any used product requires ESA, is unresolved, or has unknown ESA status, the request follows the queued workflow. A reference lookup failure returns an HTTP error without creating a new job. Unknown products are never treated as confirmed no-ESA products. Validation of every field still happens before acceptance.

@@ -25,14 +25,14 @@ Jobs completed during the submission product check have succeeded items with `at
 
 Items remain in submission order (`item_index` starts at zero). Each has `application_id`, `provider_field_id`, `status`, `attempts`, `started_at`, `completed_at`, `result`, and `error`. New pending items have null result/error; queued items awaiting a retry may retain an error from an earlier attempt. Starting the next attempt clears that error. Treat `status` as authoritative. Succeeded items contain the same response structure as a single check. Failed items contain `{ code, message, retryable }` under `error`.
 
-Read `result.compliance` for succeeded checks; item success does not imply compliance. Follow `next_offset` until it is null. You can read results before the job completes, but queued/processing items are not final. Save the results you need before the 30-day retention window ends. Responses use `Cache-Control: no-store`.
+Read `result.compliance` for succeeded checks; item success does not imply compliance. Product PULA limitations are under `result.products[].pulas[].limitations`, with counts in `result.summary`; see [product PULA limitations](/v2/api-reference/endpoint/esa-check#product-pula-limitations). Follow `next_offset` until it is null. You can read results before the job completes, but queued/processing items are not final. Save the results you need before the 30-day retention window ends. Responses use `Cache-Control: no-store`.
 
-The example below shows one pending item on the first page.
+The example below shows a processing job. The first item succeeded and its product has a PULA limitation; the second item is still queued. The succeeded `result` shows selected fields only.
 
 <RequestExample>
 
 ```bash cURL
-curl --request GET 'https://esa.acreblitz.com/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001/results?offset=0&limit=1' \
+curl --request GET 'https://esa.acreblitz.com/api/v2/esa-check/bulk/019953f8-8c00-7000-8000-000000000001/results?offset=0&limit=20' \
   --header "X-API-Key: $ACREBLITZ_API_KEY"
 ```
 
@@ -46,13 +46,68 @@ curl --request GET 'https://esa.acreblitz.com/api/v2/esa-check/bulk/019953f8-8c0
   "job_id": "019953f8-8c00-7000-8000-000000000001",
   "total_items": 2,
   "offset": 0,
-  "limit": 1,
-  "next_offset": 1,
+  "limit": 20,
+  "next_offset": null,
   "items": [
     {
       "item_index": 0,
       "application_id": "north-application-2026-10-05",
       "provider_field_id": "north-field",
+      "status": "succeeded",
+      "attempts": 1,
+      "error": null,
+      "started_at": "2026-10-05T14:00:05.000Z",
+      "completed_at": "2026-10-05T14:00:09.000Z",
+      "result": {
+        "success": true,
+        "esa_required": true,
+        "account_id": "your-account",
+        "provider_id": "your-provider",
+        "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+        "products": [
+          {
+            "epa_number": "7969-500",
+            "product_name": "Liberty Ultra",
+            "pest": ["Waterhemp"],
+            "product_status": "Active",
+            "esa_required": true,
+            "pulas": [
+              {
+                "pula_id": 12345,
+                "event_name": "Example PULA",
+                "status": "effective",
+                "effective_date": "2026-01-01",
+                "codes": "EX1",
+                "limitations": [
+                  {
+                    "limitation_id": 67890,
+                    "code": "EX1",
+                    "limitation": "Illustrative limitation text. Read the returned text for the actual restriction.",
+                    "mitigation_options": []
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "summary": { "total_pulas": 1, "total_limitations": 1, "products_checked": 1, "products_with_limitations": 1 },
+        "compliance": {
+          "version": 1,
+          "scope": "requirements_and_gaps",
+          "calculated_at": "2026-10-05T14:00:09.000Z",
+          "processing_complete": true,
+          "status": "indeterminate",
+          "issues": [
+            { "code": "LIMITATIONS_REVIEW_REQUIRED", "message": "Review the returned PULA text for conditions not evaluated automatically" },
+            { "code": "DRIFT_CONDITIONS_UNVERIFIED", "message": "Buffer placement and application weather have not been verified" }
+          ]
+        }
+      }
+    },
+    {
+      "item_index": 1,
+      "application_id": "south-application-2026-10-05",
+      "provider_field_id": "south-field",
       "status": "queued",
       "attempts": 0,
       "result": null,

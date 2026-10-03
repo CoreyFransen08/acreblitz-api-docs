@@ -77,7 +77,9 @@ A successful calculation clears the generic `DRIFT_CONDITIONS_UNVERIFIED` issue.
 
 Protected features are read for each request so new nearby features can affect the result. Recompute after changing application conditions or mitigation selections. [Application compliance](/v2/api-reference/endpoint/application-compliance) and [group compliance](/v2/api-reference/endpoint/group-compliance) expose the saved `drift.last_computation.drift_status`; those GETs do not run a new placement calculation. Older snapshots have a null `drift_status` until recomputed.
 
-The example shows selected response fields for an application with a remaining buffer, a treatable area, satisfied runoff, and no other unresolved restrictions.
+The response also includes the refreshed `products[]` with each product's [PULA limitations](/v2/api-reference/endpoint/esa-check#product-pula-limitations) and the `summary` counts, in the same shape as an ESA check. Any matching limitation adds `LIMITATIONS_REVIEW_REQUIRED`, which keeps the overall `status` `indeterminate` even when drift is `met`.
+
+The example shows selected response fields for an application with a remaining buffer, a treatable area, satisfied runoff, and no PULA limitations or other unresolved restrictions.
 
 <RequestExample>
 
@@ -133,6 +135,17 @@ curl --request POST 'https://esa.acreblitz.com/api/v2/applications/019953f8-8c00
       "gpa": 15
     }
   },
+  "products": [
+    {
+      "epa_number": "7969-500",
+      "product_name": "Liberty Ultra",
+      "pest": ["Waterhemp"],
+      "product_status": "Active",
+      "esa_required": true,
+      "pulas": []
+    }
+  ],
+  "summary": { "total_pulas": 0, "total_limitations": 0, "products_checked": 1, "products_with_limitations": 0 },
   "compliance": {
     "version": 1,
     "scope": "requirements_and_gaps",

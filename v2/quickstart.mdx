@@ -82,6 +82,55 @@ curl --request POST 'https://esa.acreblitz.com/api/v2/esa-check' \
 
 Read `compliance.status`, `processing_complete`, and `issues`. A successful request can have unresolved compliance. Keep the returned `application_event_id` as an opaque reference for application-time checks and portal controls. Open `mitigation_portal_url` when one is returned; use the entire URL unchanged.
 
+Each entry in `products[]` lists the PULAs on the field that limit that product for your application method. Show each `limitations[].limitation` text to the applicator. The API cannot evaluate every condition in that text, so a returned limitation adds `LIMITATIONS_REVIEW_REQUIRED` and keeps the status `indeterminate` until reviewed. See [product PULA limitations](/v2/api-reference/endpoint/esa-check#product-pula-limitations).
+
+<ResponseExample>
+
+```json 200 — selected response fields
+{
+  "success": true,
+  "esa_required": true,
+  "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+  "products": [
+    {
+      "epa_number": "7969-500",
+      "product_name": "Liberty Ultra",
+      "pest": ["Waterhemp"],
+      "product_status": "Active",
+      "esa_required": true,
+      "pulas": [
+        {
+          "pula_id": 12345,
+          "event_name": "Example PULA",
+          "status": "effective",
+          "effective_date": "2026-01-01",
+          "codes": "EX1",
+          "limitations": [
+            {
+              "limitation_id": 67890,
+              "code": "EX1",
+              "limitation": "Illustrative limitation text. Read the returned text for the actual restriction.",
+              "mitigation_options": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": { "total_pulas": 1, "total_limitations": 1, "products_checked": 1, "products_with_limitations": 1 },
+  "compliance": {
+    "status": "indeterminate",
+    "processing_complete": true,
+    "issues": [
+      { "code": "LIMITATIONS_REVIEW_REQUIRED", "message": "Review the returned PULA text for conditions not evaluated automatically" },
+      { "code": "DRIFT_CONDITIONS_UNVERIFIED", "message": "Buffer placement and application weather have not been verified" }
+    ]
+  }
+}
+```
+
+</ResponseExample>
+
 If `esa_required` is false, inspect the issues before treating the result as not applicable. Unknown products can produce an indeterminate assessment. The no-ESA early return does not create or update a saved field/application.
 
 ## Check multiple fields

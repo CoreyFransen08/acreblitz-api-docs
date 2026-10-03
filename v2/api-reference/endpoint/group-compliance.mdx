@@ -30,7 +30,7 @@ Read saved requirements, current runoff points, and full drift configuration for
 
 See [Understanding compliance determinations](/v2/compliance-determination) for runoff and drift scoring, setup violations, overall status, and when to refresh a result.
 
-`applications[]` contains the same complete application objects returned by [get application compliance](/v2/api-reference/endpoint/application-compliance), including requirements, runoff scoring and claims, full drift configuration, current reductions, setup/weather, and the last saved assessment. That page defines every nested field and how to interpret current selections versus historical assessments.
+`applications[]` contains the same complete application objects returned by [get application compliance](/v2/api-reference/endpoint/application-compliance), including requirements, runoff scoring and claims, full drift configuration, current reductions, setup/weather, and the last saved assessment with each product's [PULA limitations](/v2/api-reference/endpoint/application-compliance#product-pula-limitations) under `compliance.last_assessment.products[].pulas[].limitations`. That page defines every nested field and how to interpret current selections versus historical assessments.
 
 The response also includes `retrieved_at`, `account_id`, `provider_group_id`, `total`, `offset`, `limit`, and `next_offset`. `total` counts existing accessible applications in this group and account. Members are ordered by application-event reference. Continue until `next_offset` is null. An offset beyond the last member returns an empty array with the total preserved. An empty or unowned group returns 404.
 
@@ -55,7 +55,7 @@ curl --get 'https://esa.acreblitz.com/api/v2/groups/work-order-42/compliance' \
 
 </RequestExample>
 
-This response shows an application still waiting for processing. Empty requirement lists and null assessments do not establish that no mitigations are needed.
+This response shows two applications. The first has a saved assessment with a product PULA limitation under `last_assessment.products`. Its drift details are trimmed; see [application compliance](/v2/api-reference/endpoint/application-compliance) for the complete object. The second is still waiting for processing. Empty requirement lists and null assessments do not establish that no mitigations are needed.
 
 <ResponseExample>
 
@@ -65,7 +65,7 @@ This response shows an application still waiting for processing. Empty requireme
   "retrieved_at": "2026-10-02T14:00:00.000Z",
   "account_id": "your-account",
   "provider_group_id": "work-order-42",
-  "total": 1,
+  "total": 2,
   "offset": 0,
   "limit": 50,
   "next_offset": null,
@@ -77,6 +77,98 @@ This response shows an application still waiting for processing. Empty requireme
       "provider_group_id": "work-order-42",
       "provider_field_id": "north-field",
       "field_name": "North field",
+      "application_date": "2026-10-05",
+      "application_method": "Broadcast-Ground",
+      "products": [{ "epa_number": "123-456", "product_name": "Example product", "rate": 16, "rate_unit": "fl oz/acre", "pest": ["weeds"] }],
+      "crop": ["corn"],
+      "pest": ["weeds"],
+      "processing_status": "completed",
+      "updated_at": "2026-10-02T13:00:00.000Z",
+      "portal_locked_at": null,
+      "compliance": {
+        "scope": "saved_requirements_and_current_selections",
+        "requirements": [
+          {
+            "mitigation_type": "epa_runoff",
+            "required": true,
+            "required_points": 3,
+            "exempt": false,
+            "label_required_points": 3,
+            "updated_at": "2026-10-02T13:00:00.000Z",
+            "runoff_exemption_claimed_at": null,
+            "runoff_exemption_reasons": null,
+            "drift_buffers": null
+          }
+        ],
+        "runoff": [
+          {
+            "mitigation_type": "epa_runoff",
+            "year": 2026,
+            "required": true,
+            "exempt": false,
+            "required_points": 3,
+            "label_required_points": 3,
+            "earned_points": 0,
+            "gap": 3,
+            "status": "not_met",
+            "credited_measures": [],
+            "selected_measures": [],
+            "runoff_exemption_claimed_at": null,
+            "runoff_exemption_reasons": null,
+            "issues": []
+          }
+        ],
+        "drift": {
+          "configuration": null,
+          "reductions": [],
+          "adjuvant_results": null,
+          "setup": { "normalized_application_method": "ground", "gpa": 10, "droplet_size": "coarse", "boom_height": "low" },
+          "weather": { "wind_direction_deg": null, "wind_speed_mph": null, "temperature_f": null, "humidity_percent": null, "observed_at": null, "source": "forecast" },
+          "last_computation": null
+        },
+        "last_assessment": {
+          "calculated_at": "2026-10-02T13:00:00.000Z",
+          "status": "not_met",
+          "processing_complete": true,
+          "issues": [
+            { "code": "LIMITATIONS_REVIEW_REQUIRED", "message": "Review the returned PULA text for conditions not evaluated automatically" }
+          ],
+          "products": [
+            {
+              "epa_number": "123-456",
+              "product_name": "Example product",
+              "pest": ["weeds"],
+              "product_status": "Active",
+              "esa_required": true,
+              "pulas": [
+                {
+                  "pula_id": 12345,
+                  "event_name": "Example PULA",
+                  "status": "effective",
+                  "effective_date": "2026-01-01",
+                  "codes": "EX1",
+                  "limitations": [
+                    {
+                      "limitation_id": 67890,
+                      "code": "EX1",
+                      "limitation": "Illustrative limitation text. Read the returned text for the actual restriction.",
+                      "mitigation_options": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "application_event_id": "019953f8-8c00-7000-8000-000000000003",
+      "application_id": "south-application-2026-10-05",
+      "account_id": "your-account",
+      "provider_group_id": "work-order-42",
+      "provider_field_id": "south-field",
+      "field_name": "South field",
       "application_date": "2026-10-05",
       "application_method": "Broadcast-Ground",
       "products": [{ "epa_number": "123-456", "product_name": "Example product", "rate": 16, "rate_unit": "fl oz/acre", "pest": ["weeds"] }],

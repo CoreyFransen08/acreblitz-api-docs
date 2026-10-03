@@ -28,7 +28,13 @@ The response contains `success`, `retrieved_at`, and `application`. Group retrie
 | `compliance.requirements[]` | Every saved mitigation requirement, including `mitigation_type`, effective `required`, nullable `required_points`, `updated_at`, runoff exemption selections (plus `exempt` and `label_required_points` for EPA runoff), and any requirement-specific `drift_buffers`. |
 | `compliance.runoff[]` | Current runoff scoring for each saved runoff requirement. EPA runoff and Enlist remain separate. |
 | `compliance.drift` | Full saved drift configuration, current reductions and selections, setup, weather, and historical computation details. |
-| `compliance.last_assessment` | Last saved ESA assessment: `calculated_at`, `status`, `processing_complete`, `issues`, and product/PULA limitations. Null when no assessment was saved. |
+| `compliance.last_assessment` | Last saved ESA assessment: `calculated_at`, `status`, `processing_complete`, `issues`, and `products[]` with their PULA limitations. Null when no assessment was saved. |
+
+### Product PULA limitations
+
+`compliance.last_assessment.products[]` returns each product's saved `epa_number`, `product_name`, `pest`, `product_status`, `esa_required`, and `pulas[]`. Each PULA has `pula_id`, `event_name`, `status`, `effective_date`, `codes`, and `limitations[]` with `limitation_id`, `code`, `limitation` text, and `mitigation_options`. With `include_geometry=true`, a PULA also includes its saved `geometry` when the original check requested it. These fields match the [ESA check product limitations](/v2/api-reference/endpoint/esa-check#product-pula-limitations).
+
+Limitations come from the last ESA check; this GET does not search for new or changed PULAs. Resubmit the check to refresh them. An application without a saved assessment has `last_assessment: null`.
 
 ## Runoff points and applicability
 
@@ -183,8 +189,36 @@ curl --request GET 'https://esa.acreblitz.com/api/v2/applications/019953f8-8c00-
         "calculated_at": "2026-10-02T13:00:00.000Z",
         "status": "not_met",
         "processing_complete": true,
-        "issues": [{ "code": "DRIFT_CONDITIONS_UNVERIFIED", "message": "Buffer placement and application weather have not been verified" }],
-        "products": [{ "epa_number": "123-456", "product_name": "Example product", "pest": ["weeds"], "product_status": "Active", "esa_required": true, "pulas": [] }]
+        "issues": [
+          { "code": "LIMITATIONS_REVIEW_REQUIRED", "message": "Review the returned PULA text for conditions not evaluated automatically" },
+          { "code": "DRIFT_CONDITIONS_UNVERIFIED", "message": "Buffer placement and application weather have not been verified" }
+        ],
+        "products": [
+          {
+            "epa_number": "123-456",
+            "product_name": "Example product",
+            "pest": ["weeds"],
+            "product_status": "Active",
+            "esa_required": true,
+            "pulas": [
+              {
+                "pula_id": 12345,
+                "event_name": "Example PULA",
+                "status": "effective",
+                "effective_date": "2026-01-01",
+                "codes": "EX1",
+                "limitations": [
+                  {
+                    "limitation_id": 67890,
+                    "code": "EX1",
+                    "limitation": "Illustrative limitation text. Read the returned text for the actual restriction.",
+                    "mitigation_options": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     }
   }

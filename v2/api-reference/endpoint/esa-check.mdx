@@ -112,6 +112,26 @@ Product results include `esa_required`, registration status, effective pests, an
 
 `mitigation_portal_url_expires_at` is the signed-link expiration in signed-link mode and null in token mode. `expires_at` describes the field portal's availability, which can have a different lifetime. Use the returned link unchanged.
 
+## Product PULA limitations
+
+`products[]` has one entry per submitted product, in request order. Each entry includes `pulas[]`: the PULAs intersecting the field that have active limitations for that product's EPA number and the submitted application method. A product without matching limitations returns `pulas: []`. When no product requires ESA, the check returns early and every `pulas` array is empty.
+
+| Field | Meaning |
+|---|---|
+| `products[].epa_number`, `product_name`, `pest` | Submitted product and its effective pests. |
+| `products[].product_status` | `Active`, `Inactive`, or null when the product could not be verified. |
+| `products[].esa_required` | Whether the product has ESA requirements; null when unknown. |
+| `products[].pulas[].pula_id`, `event_name`, `status`, `effective_date` | PULA reference and Bulletins Live! Two (BLT) event metadata. |
+| `products[].pulas[].codes` | Comma-separated limitation codes for this product in this PULA. |
+| `products[].pulas[].geometry` | Buffered PULA boundary; present only with `include_geometry: true`. |
+| `products[].pulas[].limitations[]` | `limitation_id`, `code`, `limitation` (the limitation text), and `mitigation_options` (string array, possibly empty). |
+
+`summary` counts `total_pulas` (all PULAs intersecting the field, with or without product limitations), `total_limitations`, `products_checked`, and `products_with_limitations`.
+
+Any matching limitation adds the `LIMITATIONS_REVIEW_REQUIRED` issue, which keeps `compliance.status` `indeterminate` unless something is `not_met`. Runoff and drift requirements derived from a limitation are scored automatically; other conditions in the limitation text are not. Show the limitation text to the applicator.
+
+Completed [bulk](/v2/api-reference/endpoint/bulk-results) items return the same `products` and `summary` under `result`. [Application compliance](/v2/api-reference/endpoint/application-compliance) and [group compliance](/v2/api-reference/endpoint/group-compliance) return the saved product limitations under `compliance.last_assessment.products`.
+
 ## Runoff requirements and portal exemptions
 
 When a product or PULA introduces an EPA runoff requirement, the API assumes runoff is required immediately. No portal questionnaire answer is needed to evaluate points: sufficient credits return `met`, a shortfall returns `not_met`, and missing scoring inputs return `indeterminate`.
@@ -219,6 +239,33 @@ curl --request POST 'https://esa.acreblitz.com/api/v2/esa-check' \
   "account_id": "your-account",
   "provider_id": "your-provider",
   "application_event_id": "019953f8-8c00-7000-8000-000000000002",
+  "products": [
+    {
+      "epa_number": "7969-500",
+      "product_name": "Liberty Ultra",
+      "pest": ["Waterhemp"],
+      "product_status": "Active",
+      "esa_required": true,
+      "pulas": [
+        {
+          "pula_id": 12345,
+          "event_name": "Example PULA",
+          "status": "effective",
+          "effective_date": "2026-01-01",
+          "codes": "EX1",
+          "limitations": [
+            {
+              "limitation_id": 67890,
+              "code": "EX1",
+              "limitation": "Illustrative limitation text. Read the returned text for the actual restriction.",
+              "mitigation_options": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": { "total_pulas": 1, "total_limitations": 1, "products_checked": 1, "products_with_limitations": 1 },
   "compliance": {
     "version": 1,
     "scope": "requirements_and_gaps",
@@ -229,6 +276,10 @@ curl --request POST 'https://esa.acreblitz.com/api/v2/esa-check' \
       "status": "reused"
     },
     "issues": [
+      {
+        "code": "LIMITATIONS_REVIEW_REQUIRED",
+        "message": "Review the returned PULA text for conditions not evaluated automatically"
+      },
       {
         "code": "DRIFT_CONDITIONS_UNVERIFIED",
         "message": "Buffer placement and application weather have not been verified"
