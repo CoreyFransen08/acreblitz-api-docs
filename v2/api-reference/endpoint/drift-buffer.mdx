@@ -52,6 +52,10 @@ Refresh an application assessment with current wind and application setup.
   `none`, `buffer`, `treatable`, or `both`; defaults to `none`.
 </ParamField>
 
+<ParamField body="include_non_managed_areas" type="boolean">
+  When `true`, returns the non-managed areas the drift buffer was measured from under `application_time.non_managed_areas`. Defaults to `false`.
+</ParamField>
+
 ## Assessment behavior
 
 See [Understanding compliance determinations](/v2/compliance-determination) for runoff and drift scoring, setup violations, overall status, and when to refresh a result.
@@ -75,11 +79,27 @@ Use `geometry: "both"` to receive the buffer and treatable area together. `geome
 
 A successful calculation clears the generic `DRIFT_CONDITIONS_UNVERIFIED` issue. Specific issues remain: unknown products, missing required droplet/boom inputs, unresolved rate/wind tiers, unsupported omni-directional or downslope placement, and unverified manual practices prevent a drift pass. Rate-specific wind tiers take precedence over method-level tiers. Wind outside configured tiers returns `WIND_SPEED_UNRESOLVED`; the API does not infer an unconfigured wind limit. Temperature and humidity are recorded inputs, not currently evaluated label thresholds.
 
+## Non-managed areas
+
+Some labels measure the drift buffer from a non-managed area, such as a wildlife area, wetland, or sensitive neighboring crop. For these rules, the field boundary always takes precedence. Any part of a non-managed area inside the field boundary is ignored, so an area that overlaps the field is treated as starting at the field edge. Each field edge facing the drift direction is then buffered inward by the buffer distance minus the gap to the area in front of it. Areas upwind of the field, beyond the buffer distance, or entirely inside the field boundary do not create a buffer.
+
+Set `include_non_managed_areas: true` to see which areas were considered. `application_time.non_managed_areas` is a GeoJSON `FeatureCollection` of the areas within about 1,000 ft (305 m) of the field that apply to a product with this kind of rule for your application method. Each area appears once, even when several products in the tank mix apply to it. The list shows every area evaluated, so an area can appear without changing the buffer. Like the field-boundary output, it is not retained in the saved assessment snapshot.
+
+| Property | Description |
+|---|---|
+| `feature_type` | Kind of area, such as `wetland` or `sensitive_crop` |
+| `source` | `protected_feature` for a mapped protected area, or `sensitive_field` for a nearby planted field with a sensitive crop |
+| `distance_m` | Shortest distance from the field boundary to the area, in meters; `0` when they touch or overlap |
+| `product_epas` | EPA registration numbers in the tank mix whose drift rules apply to this area |
+| `rules_matched` | Sensitivity rules matched for a `sensitive_field`; empty for protected features |
+
+`application_time.non_managed_feature_count` is always returned and counts the areas before they are combined across products.
+
 Protected features are read for each request so new nearby features can affect the result. Recompute after changing application conditions or mitigation selections. [Application compliance](/v2/api-reference/endpoint/application-compliance) and [group compliance](/v2/api-reference/endpoint/group-compliance) expose the saved `drift.last_computation.drift_status`; those GETs do not run a new placement calculation. Older snapshots have a null `drift_status` until recomputed.
 
 The response also includes the refreshed `products[]` with each product's [PULA limitations](/v2/api-reference/endpoint/esa-check#product-pula-limitations) and the `summary` counts, in the same shape as an ESA check. Any matching limitation adds `LIMITATIONS_REVIEW_REQUIRED`, which keeps the overall `status` `indeterminate` even when drift is `met`.
 
-The example shows selected response fields for an application with a remaining buffer, a treatable area, satisfied runoff, and no PULA limitations or other unresolved restrictions.
+The first example shows selected response fields for an application with a remaining buffer, a treatable area, satisfied runoff, and no PULA limitations or other unresolved restrictions. The second shows `application_time.non_managed_areas` for an application near a wetland; the coordinates are shortened.
 
 <RequestExample>
 
@@ -105,7 +125,8 @@ curl --request POST 'https://esa.acreblitz.com/api/v2/applications/019953f8-8c00
       "rate_unit_state": "L"
     }
   ],
-  "geometry": "both"
+  "geometry": "both",
+  "include_non_managed_areas": true
 }'
 ```
 
@@ -155,6 +176,33 @@ curl --request POST 'https://esa.acreblitz.com/api/v2/applications/019953f8-8c00
       "scope": "application_setup_and_treatable_area",
       "requires_buffer": true,
       "has_treatable_area": true
+    }
+  }
+}
+```
+
+```json 200 — non-managed areas
+{
+  "application_time": {
+    "non_managed_feature_count": 1,
+    "non_managed_areas": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[-95.4041, 43.1018], [-95.3989, 43.1018], [-95.3989, 43.0991], [-95.4041, 43.0991], [-95.4041, 43.1018]]]
+          },
+          "properties": {
+            "feature_type": "wetland",
+            "source": "protected_feature",
+            "distance_m": 18.4,
+            "product_epas": ["7969-500"],
+            "rules_matched": []
+          }
+        }
+      ]
     }
   }
 }
