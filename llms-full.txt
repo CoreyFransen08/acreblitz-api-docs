@@ -2730,6 +2730,20 @@ query parameter; integer; optional.
 
 Optional report year, 1900–2200.
 
+### grower_name
+
+query parameter; string; optional.
+
+Optional grower name, up to 200 characters. It prints in the report's **Name** field in place of your provider name.
+
+### farm_name
+
+query parameter; string; optional.
+
+Optional farm name, up to 200 characters. It prints before the field name, as `Farm / Field`.
+
+  AcreBlitz does not store `grower_name` or `farm_name`. They apply only to the compliance report from that request. Send them on each download where you want them to appear. Blank values are ignored. A value over 200 characters or with control characters returns `422 INVALID_REQUEST`. URL-encode both values.
+
 ## Response
 
 A successful request returns **200** with `Content-Type: application/pdf` and an attachment filename. Save the response bytes as a `.pdf` file.
@@ -2741,10 +2755,14 @@ Content-Disposition: attachment; filename=mitigation-report.pdf
 
 The field must belong to your provider and have an active, unexpired, unarchived portal. An unknown or unavailable field returns 404; an ambiguous field identifier returns 409. Dependent report failures can return 502. The report uses the field's current saved data; the download request does not rerun the ESA check.
 
-The example requests the 2026 report.
+The example requests the 2026 report labeled with a grower and farm name.
 
 ```bash cURL
-curl --request GET 'https://esa.acreblitz.com/api/v2/fields/north-field/reports/runoff?year=2026' \
+curl --request GET 'https://esa.acreblitz.com/api/v2/fields/north-field/reports/runoff' \
+  --get \
+  --data-urlencode 'year=2026' \
+  --data-urlencode 'grower_name=Jane Smith' \
+  --data-urlencode 'farm_name=North Farm' \
   --header "X-API-Key: $ACREBLITZ_API_KEY" \
   --output runoff-report.pdf
 ```
